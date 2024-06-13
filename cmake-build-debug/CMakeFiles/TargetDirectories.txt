@@ -1,0 +1,3 @@
+C:/Users/pavlo/c/mars/cmake-build-debug/CMakeFiles/mars.dir
+C:/Users/pavlo/c/mars/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/pavlo/c/mars/cmake-build-debug/CMakeFiles/rebuild_cache.dir
