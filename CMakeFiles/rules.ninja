@@ -42,7 +42,7 @@ rule CUSTOM_COMMAND
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = "/Users/floordiv/Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/241.17890.19/CLion.app/Contents/bin/cmake/mac/aarch64/bin/cmake" --regenerate-during-build -S/Users/floordiv/c/mars -B/Users/floordiv/c/mars/cmake-build-debug
+  command = "/Users/floordiv/Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/241.17890.19/CLion.app/Contents/bin/cmake/mac/aarch64/bin/cmake" --regenerate-during-build -S/Users/floordiv/c/mars -B/Users/floordiv/c/mars
   description = Re-running CMake...
   generator = 1
 

@@ -7,14 +7,4 @@
 
 #include <stdint.h>
 
-#include "mars_http_statuses.c"
-
-typedef struct {
-
-} http_request_t;
-
-typedef struct {
-    http_status_t status;
-} http_response_t;
-
 #endif //MARS_MARS_HTTP_H

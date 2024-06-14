@@ -4,6 +4,9 @@
 
 #include <stdint.h>
 
+#ifndef MARS_HTTP_STATUSES_H
+#define MARS_HTTP_STATUSES_H
+
 typedef uint16_t http_status_t;
 
 const http_status_t HTTP_STATUS_CONTINUE = 100;; // RFC 9110, 15.2.1
@@ -73,3 +76,5 @@ const http_status_t HTTP_STATUS_INSUFFICIENT_STORAGE            = 507; // RFC 49
 const http_status_t HTTP_STATUS_LOOP_DETECTED                   = 508; // RFC 5842, 7.2
 const http_status_t HTTP_STATUS_NOT_EXTENDED                    = 510; // RFC 2774, 7
 const http_status_t HTTP_STATUS_NETWORK_AUTHENTICATION_REQUIRED = 511; // RFC 6585, 6
+
+#endif // MARS_HTTP_STATUSES_H

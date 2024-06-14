@@ -1,10 +1,10 @@
-C:\Users\pavlo\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\241.17011.124\bin\cmake\win\x64\bin\cmake.exe -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=C:/Users/pavlo/AppData/Local/JetBrains/Toolbox/apps/CLion/ch-0/241.17011.124/bin/ninja/win/x64/ninja.exe -DCMAKE_TOOLCHAIN_FILE=C:\Users\pavlo\.vcpkg-clion\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja -S C:\Users\pavlo\c\mars -B C:\Users\pavlo\c\mars\cmake-build-debug
--- The C compiler identification is GNU 13.1.0
+"/Users/floordiv/Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/241.17890.19/CLion.app/Contents/bin/cmake/mac/aarch64/bin/cmake" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=/Users/floordiv/Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/241.17890.19/CLion.app/Contents/bin/ninja/mac/aarch64/ninja" -G Ninja -S /Users/floordiv/c/mars -B /Users/floordiv/c/mars
+-- The C compiler identification is AppleClang 13.1.6.13160021
 -- Detecting C compiler ABI info
 -- Detecting C compiler ABI info - done
--- Check for working C compiler: C:/Users/pavlo/AppData/Local/JetBrains/Toolbox/apps/CLion/ch-0/241.17011.124/bin/mingw/bin/gcc.exe - skipped
+-- Check for working C compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc - skipped
 -- Detecting C compile features
 -- Detecting C compile features - done
--- Configuring done (2.9s)
+-- Configuring done (0.7s)
 -- Generating done (0.0s)
--- Build files have been written to: C:/Users/pavlo/c/mars/cmake-build-debug
+-- Build files have been written to: /Users/floordiv/c/mars

@@ -1,0 +1,8 @@
+# ninja log v6
+1	81	1718367384240466217	build.ninja	68a256453a3fa527
+2	85	1718357207774386188	CMakeFiles/mars.dir/main.c.o	f513be674ade8a6b
+2	67	1718357207774872875	CMakeFiles/mars.dir/src/net/http/core.c.o	b2cc10ca5058abf4
+9	416	1718357286479433161	mars	e726447abdde2237
+2	90	1718357207775035118	CMakeFiles/mars.dir/src/misc/buffer/buffer.c.o	884aa15ff1972cd5
+2	67	1718357207774694633	CMakeFiles/mars.dir/src/net/http/parser.c.o	e936bef7935c3c7f
+5	86	1718367384240466217	build.ninja	68a256453a3fa527

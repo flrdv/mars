@@ -2,8 +2,11 @@
 // Created by floordiv on 12-Jun-24.
 //
 
+#ifndef MARS_HTTP_PARSER_H
+#define MARS_HTTP_PARSER_H
+
+#include "misc/types.h"
 #include <stdbool.h>
-#include "mars_http_parser.h"
 
 typedef struct {
     bool completed;
@@ -14,3 +17,7 @@ typedef struct {
 typedef struct {
 
 } http_parser_t;
+
+#endif //MARS_HTTP_PARSER_H
+
+

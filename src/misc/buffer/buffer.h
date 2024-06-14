@@ -5,7 +5,7 @@
 #ifndef MARS_BUFFER_H
 #define MARS_BUFFER_H
 
-#include "../types.h"
+#include "misc/types.h"
 
 typedef struct {
     byte_t* mem;

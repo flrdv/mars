@@ -1,0 +1,6 @@
+# ninja log v6
+2	282	1718351661747068980	CMakeFiles/mars.dir/src/net/http/core.c.o	d95c14110b50c666
+2	283	1718351661746703784	CMakeFiles/mars.dir/src/net/http/parser.c.o	fcac1589a575474d
+1	306	1718351661746167387	CMakeFiles/mars.dir/main.c.o	181383324af7f088
+2	308	1718351661747262514	CMakeFiles/mars.dir/src/misc/buffer/buffer.c.o	c0002a3647bc63b7
+2	319	1718351700224161038	CMakeFiles/mars.dir/src/misc/buffer/buffer.c.o	c0002a3647bc63b7
