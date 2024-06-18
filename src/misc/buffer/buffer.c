@@ -3,7 +3,6 @@
 //
 
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include "buffer.h"
 
@@ -38,7 +37,7 @@ bool buffer_grow_(buffer_buffer_t* buff, size_t increment) {
 
 bool buffer_append(buffer_buffer_t* buff, byte_t* data, size_t size) {
     if (buff->len + size > buff->cap) {
-        TRY_GROW(buff, size);
+        TRY_GROW(buff, size - (buff->cap - buff->len));
     }
 
     memcpy(buff->mem + buff->len, data, size);
