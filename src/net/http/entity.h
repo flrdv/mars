@@ -1,5 +1,5 @@
 //
-// Created by Paul on 14.06.24.
+// Created by pavlo on 14.06.24.
 //
 
 #ifndef MARS_REQUEST_H
@@ -7,9 +7,7 @@
 
 #include "status.h"
 
-typedef struct {
 
-} http_request_t;
 
 typedef struct {
     http_status_t status;
