@@ -51,4 +51,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# IDEA stuff
 .idea
+
+# External dependencies (should be cloned locally)
+subprojects/*
+!subprojects/*.wrap
