@@ -1,9 +1,7 @@
 //
-// Created by Paul on 14.06.24.
+// Created by pavlo on 14.06.24.
 //
 
-#include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 #include "misc/buffer/buffer.h"
 #include "unity.h"
@@ -18,7 +16,7 @@ void test_buffer_no_overflow(void) {
     byte_t str2[] = "de";
     TEST_ASSERT(buffer_append(&buffer, str2, 2));
 
-    buffer_segment_t segment = buffer_segment(&buffer);
+    slice_t segment = buffer_segment(&buffer);
     TEST_ASSERT(segment.len == strlen("abcde"));
     TEST_ASSERT(memcmp(segment.data, "abcde", segment.len) == 0);
     buffer_free(&buffer);
@@ -31,7 +29,7 @@ void test_buffer_overflow(void) {
     byte_t str2[] = "de";
     TEST_ASSERT(buffer_append(&buffer, str2, 2));
 
-    buffer_segment_t segment = buffer_segment(&buffer);
+    slice_t segment = buffer_segment(&buffer);
     TEST_ASSERT(segment.len == strlen("abcde"));
     TEST_ASSERT(memcmp(segment.data, "abcde", segment.len) == 0);
     buffer_free(&buffer);
