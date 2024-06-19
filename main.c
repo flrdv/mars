@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "misc/types.h"
+#include "types.h"
 #include "net/http/core.h"
 
 int main(void) {
