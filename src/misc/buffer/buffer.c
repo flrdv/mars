@@ -1,5 +1,5 @@
 //
-// Created by floordiv on 13-Jun-24.
+// Created by pavlo on 13-Jun-24.
 //
 
 #include <stdlib.h>
@@ -22,7 +22,7 @@ void buffer_free(buffer_buffer_t* buff) {
     free(buff->mem);
 }
 
-bool buffer_grow_(buffer_buffer_t* buff, size_t increment) {
+static bool buffer_grow_(buffer_buffer_t* buff, size_t increment) {
     size_t new_cap = buff->cap + increment; // TODO: make some smarter algorithm
     if (new_cap > buff->max_cap) return false;
 
@@ -30,12 +30,13 @@ bool buffer_grow_(buffer_buffer_t* buff, size_t increment) {
     // copy up to len instead of cap because space after the len
     // must anyway be empty
     memcpy(new_mem, buff->mem, buff->len);
+    free(buff->mem);
     buff->mem = new_mem;
     buff->cap = new_cap;
     return true;
 }
 
-bool buffer_append(buffer_buffer_t* buff, byte_t* data, size_t size) {
+bool buffer_append(buffer_buffer_t* buff, const byte_t* const data, size_t size) {
     if (buff->len + size > buff->cap) {
         TRY_GROW(buff, size - (buff->cap - buff->len));
     }
@@ -45,14 +46,11 @@ bool buffer_append(buffer_buffer_t* buff, byte_t* data, size_t size) {
     return true;
 }
 
-buffer_segment_t buffer_segment(buffer_buffer_t* buff) {
+slice_t buffer_segment(buffer_buffer_t* buff) {
     byte_t *segment = &buff->mem[buff->offset];
     size_t len = buff->len - buff->offset;
     buff->offset = buff->len;
-    return (buffer_segment_t) {
-        .data = segment,
-        .len = len
-    };
+    return new_slice(segment, len);
 }
 
 size_t buffer_segment_len(buffer_buffer_t* buff) {
