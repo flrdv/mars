@@ -1,18 +1,24 @@
-project('mars', 'c')
+project('mars', 'c', version : '0.0.1')
 
+# Mount subdirectories
+sources = []
+tests = []
+
+subdir('tests')
+subdir('src')
+subdir('src/net/http')
+subdir('src/misc/buffer')
+
+# Dependencies
+unity_dep = subproject('unity').get_variable('unity_dep')
+
+# Include directories
 src = include_directories('src')
-sources = [
-    'src/misc/buffer/buffer.c',
-    'src/net/http/core.c',
-]
 
+# Executable
 executable('main', ['main.c', sources], include_directories : src)
 
-unity_dep = subproject('unity').get_variable('unity_dep')
-tests = [
-    ['TestBuffer', 'test_buffer.c'],
-]
-
+# Tests
 foreach test : tests
     name = test[0]
     file = test[1]
