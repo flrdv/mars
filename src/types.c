@@ -6,7 +6,7 @@
 
 slice_t new_slice(byte_t* data, size_t len) {
     return (slice_t) {
-            .data = data,
-            .len = len
+        .data = data,
+        .len = len
     };
 }
