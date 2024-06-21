@@ -5,17 +5,17 @@
 #include "request.h"
 
 #define STR3_CMP(m, c0, c1, c2) \
-    *(uint32_t*)m == (((uint32_t)c2 << 16) | (c1 << 9) | (c0))
+    *(uint32_t*)m == ((c2 << 16) | (c1 << 8) | (c0))
 #define STR4_CMP(m, c0, c1, c2, c3) \
     *(uint32_t*)m == ((c3 << 24) | (c2 << 16) | (c1 << 8) | (c0))
 #define STR5_CMP(m, c0, c1, c2, c3, c4) \
     (*(uint32_t*)m == ((c3 << 24) | (c2 << 16) | (c1 << 8) | (c0))) && m[4] == c4
 #define STR6_CMP(m, c0, c1, c2, c3, c4, c5) \
-    *(uint32_t*)m == ((c3 << 24) | (c2 << 16) | (c1 << 8) | c0) && \
-    (((uint32_t*) m)[1] & 0xffff) == ((c5 << 8) | c4)
+    ((*(uint64_t*)m) & 0x0000ffffffffffff) == \
+    (((uint64_t)c5 << 40) | ((uint64_t)c4 << 32) | (c3 << 24) | (c2 << 16) | (c1 << 8) | (c0))
 #define STR7_CMP(m, c0, c1, c2, c3, c4, c5, c6) \
-    ((*(uint64_t*)m) & 0xffffffffffffff00) == \
-    (((uint64_t)c6 << 56) | (c5 << 48) | (c4 << 40) | (c3 << 32) | (c2 << 24) | (c1 << 16) | (c0 << 8))
+    ((*(uint64_t*)m) & 0x00ffffffffffffff) == \
+    (((uint64_t)c6 << 48) | ((uint64_t)c5 << 40) | ((uint64_t)c4 << 32) | (c3 << 24) | (c2 << 16) | (c1 << 8) | (c0))
 
 known_http_methods_t http_parse_method(const slice_t str) {
     switch (str.len) {
