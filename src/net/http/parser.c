@@ -41,7 +41,15 @@ static ssize_t find_char(const byte_t* data, const ssize_t len, const char ch) {
     return -1;
 }
 
+static inline void strip_cr(slice_t* slice) {
+    if (slice->data[slice->len-1] == '\r') {
+        slice->len--;
+    }
+}
+
 http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const ssize_t len) {
+    ssize_t remains = len;
+
     switch (parser->state) {
         case ST_METHOD:
             goto st_method;
@@ -62,24 +70,59 @@ http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const
 
         st_method:
     {
-        ssize_t space = find_char(data, len, ' ');
+        const ssize_t space = find_char(data, remains, ' ');
         if (space == -1) {
-            HTTP_BUFFER_APPEND(parser->req_line_buff, data, len, HTTP_STATUS_NOT_IMPLEMENTED)
+            HTTP_BUFFER_APPEND(parser->req_line_buff, data, remains, HTTP_STATUS_NOT_IMPLEMENTED)
 
             return HTTP_PENDING;
         }
 
+        HTTP_BUFFER_APPEND(parser->req_line_buff, data, space, HTTP_STATUS_NOT_IMPLEMENTED)
         data = data+space+1;
+        remains -= space;
         slice_t segment = buffer_segment(parser->req_line_buff);
+        parser->request->method = (http_method_t) {
+            .method = http_parse_method(segment),
+            .repr = segment
+        };
+
+        // fall through to st_uri
     }
 
         st_uri:
     {
+        const ssize_t space = find_char(data, remains, ' ');
+        if (space == -1) {
+            HTTP_BUFFER_APPEND(parser->req_line_buff, data, remains, HTTP_STATUS_REQUEST_URI_TOO_LONG)
+            parser->state = ST_URI;
 
+            return HTTP_PENDING;
+        }
+
+        HTTP_BUFFER_APPEND(parser->req_line_buff, data, space, HTTP_STATUS_REQUEST_URI_TOO_LONG)
+        data = data+space+1;
+        remains -= space;
+        const slice_t segment = buffer_segment(parser->req_line_buff);
+        parser->request->path = segment;
+
+        // fall through to st_proto
     };
         st_proto:
     {
+        const ssize_t lf = find_char(data, remains, '\n');
+        if (lf == -1) {
+            HTTP_BUFFER_APPEND(parser->req_line_buff, data, remains, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
+            parser->state = ST_PROTO;
 
+            return HTTP_PENDING;
+        }
+
+        HTTP_BUFFER_APPEND(parser->req_line_buff, data, lf, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
+        data = data+lf+1;
+        remains -= lf;
+        slice_t segment = buffer_segment(parser->req_line_buff);
+        strip_cr(&segment);
+        parser->request->path = segment;
     };
         st_header_key:
     {
