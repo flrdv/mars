@@ -6,8 +6,8 @@ tests = []
 
 subdir('tests')
 subdir('src')
+subdir('src/misc')
 subdir('src/net/http')
-subdir('src/misc/buffer')
 
 # Dependencies
 unity_dep = subproject('unity').get_variable('unity_dep')
