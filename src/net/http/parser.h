@@ -7,9 +7,9 @@
 
 #include <stdbool.h>
 #include "types.h"
-#include "net/http/status.h"
-#include "net/http/request.h"
-#include "misc/buffer/buffer.h"
+#include "status.h"
+#include "request.h"
+#include "misc/buffer.h"
 
 typedef struct {
     bool completed;
@@ -32,7 +32,7 @@ typedef struct {
     buffer_buffer_t* req_line_buff;
     buffer_buffer_t* header_buff;
     char* header_key;
-    uint16_t headers;
+    uint16_t headers_count;
     state_t state;
 } http_parser_t;
 

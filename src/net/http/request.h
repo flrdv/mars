@@ -6,6 +6,7 @@
 #define MARS_REQUEST_H
 
 #include "types.h"
+#include "misc/keyval.h"
 
 typedef enum {
     UNKNOWN,
@@ -28,6 +29,8 @@ typedef struct {
 typedef struct {
     http_method_t method;
     slice_t path;
+    slice_t protocol;
+    keyval_storage_t headers;
 } http_request_t;
 
 known_http_methods_t http_parse_method(slice_t str);

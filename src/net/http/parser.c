@@ -24,7 +24,7 @@ http_parser_t http_parser_new(
         .request = req,
         .req_line_buff = req_line_buff,
         .header_buff = header_buff,
-        .headers = 0,
+        .headers_count = 0,
         .state = ST_METHOD,
     };
 }
@@ -122,7 +122,7 @@ http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const
         remains -= lf;
         slice_t segment = buffer_segment(parser->req_line_buff);
         strip_cr(&segment);
-        parser->request->path = segment;
+        parser->request->protocol = segment;
     };
         st_header_key:
     {

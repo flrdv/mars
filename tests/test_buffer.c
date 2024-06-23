@@ -3,7 +3,7 @@
 //
 
 #include <string.h>
-#include "misc/buffer/buffer.h"
+#include "src/misc/buffer.h"
 #include "unity.h"
 
 void setUp(void) {}
