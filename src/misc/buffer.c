@@ -6,10 +6,10 @@
 #include <string.h>
 #include "buffer.h"
 
-#define TRY_GROW(buff, size) if (!buffer_grow_(buff, size)) { return false; }
+#define TRY_GROW(buff, size) if (!buffer_grow(buff, size)) { return false; }
 
-buffer_buffer_t buffer_new(uint32_t prealloc, uint32_t max_cap) {
-    return (buffer_buffer_t) {
+buffer_t buffer_new(uint32_t prealloc, uint32_t max_cap) {
+    return (buffer_t) {
         .mem = malloc(prealloc),
         .offset = 0,
         .len = 0,
@@ -18,11 +18,11 @@ buffer_buffer_t buffer_new(uint32_t prealloc, uint32_t max_cap) {
     };
 }
 
-void buffer_free(buffer_buffer_t* buff) {
+void buffer_free(buffer_t* buff) {
     free(buff->mem);
 }
 
-static bool buffer_grow_(buffer_buffer_t* buff, size_t increment) {
+static bool buffer_grow(buffer_t* buff, size_t increment) {
     size_t new_cap = buff->cap + increment; // TODO: make some smarter algorithm
     if (new_cap > buff->max_cap) return false;
 
@@ -36,7 +36,7 @@ static bool buffer_grow_(buffer_buffer_t* buff, size_t increment) {
     return true;
 }
 
-bool buffer_append(buffer_buffer_t* buff, const byte_t* const data, size_t size) {
+bool buffer_append(buffer_t* buff, const byte_t* const data, size_t size) {
     if (buff->len + size > buff->cap) {
         TRY_GROW(buff, size - (buff->cap - buff->len));
     }
@@ -46,13 +46,22 @@ bool buffer_append(buffer_buffer_t* buff, const byte_t* const data, size_t size)
     return true;
 }
 
-slice_t buffer_segment(buffer_buffer_t* buff) {
+bool buffer_append_char(buffer_t* buff, const char* data, size_t size) {
+    return buffer_append(buff, (byte_t*)data, size);
+}
+
+slice_t buffer_segment(buffer_t* buff) {
     byte_t *segment = &buff->mem[buff->offset];
     size_t len = buff->len - buff->offset;
     buff->offset = buff->len;
     return new_slice(segment, len);
 }
 
-size_t buffer_segment_len(buffer_buffer_t* buff) {
+size_t buffer_segment_len(buffer_t* buff) {
     return buff->len - buff->offset;
+}
+
+void buffer_clear(buffer_t* buff) {
+    buff->len = 0;
+    buff->offset = 0;
 }
