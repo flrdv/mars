@@ -23,23 +23,27 @@ typedef enum {
     ST_URI,
     ST_PROTO,
     ST_HEADER_KEY,
-    ST_HEADER_COLONSP,
+    ST_HEADER_SPACE,
     ST_HEADER_VALUE,
+    ST_LAST_LF
 } state_t;
 
 typedef struct {
     http_request_t* request;
-    buffer_buffer_t* req_line_buff;
-    buffer_buffer_t* header_buff;
-    char* header_key;
+    buffer_t* req_line_buff;
+    buffer_t* header_buff;
+    slice_t current_header_key;
     uint16_t headers_count;
     state_t state;
 } http_parser_t;
 
-http_parser_t http_parser_new(
-        http_request_t* req, buffer_buffer_t* req_line_buff, buffer_buffer_t* header_buff
+http_parser_t http_new_parser(
+        http_request_t* req, buffer_t* req_line_buff, buffer_t* header_buff
 );
+
 http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, ssize_t len);
+
+void http_parser_free(http_parser_t* parser);
 
 #endif //MARS_HTTP_PARSER_H
 
