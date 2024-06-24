@@ -2,6 +2,7 @@
 // Created by pavlo on 19.06.24.
 //
 
+#include <stdlib.h>
 #include "request.h"
 
 #define STR3_CMP(m, c0, c1, c2) \
@@ -28,24 +29,22 @@ known_http_methods_t http_parse_method(const slice_t str) {
             }
 
             return UNKNOWN;
-        case 4: {
+        case 4:
             if (STR4_CMP(str.data, 'H', 'E', 'A', 'D')) {
                 return HEAD;
             }
             if (STR4_CMP(str.data, 'P', 'O', 'S', 'T')) {
                 return POST;
             }
-        }
 
             return UNKNOWN;
-        case 5: {
+        case 5:
             if (STR5_CMP(str.data, 'T', 'R', 'A', 'C', 'E')) {
                 return TRACE;
             }
             if (STR5_CMP(str.data, 'P', 'A', 'T', 'C', 'H')) {
                 return PATCH;
             }
-        }
 
             return UNKNOWN;
         case 6:
@@ -54,17 +53,26 @@ known_http_methods_t http_parse_method(const slice_t str) {
             }
 
             return UNKNOWN;
-        case 7: {
+        case 7:
             if (STR7_CMP(str.data, 'O', 'P', 'T', 'I', 'O', 'N', 'S')) {
                 return OPTIONS;
             }
             if (STR7_CMP(str.data, 'C', 'O', 'N', 'N', 'E', 'C', 'T')) {
                 return CONNECT;
             }
-        }
 
             return UNKNOWN;
         default:
             return UNKNOWN;
     }
+}
+
+http_request_t http_request_new(keyval_storage_t storage) {
+    return (http_request_t) {
+        .headers = storage,
+    };
+}
+
+void http_request_free(http_request_t* request) {
+    keyval_free(&request->headers);
 }
