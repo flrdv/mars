@@ -1,1 +1,1 @@
-sources += files('buffer.c', 'keyval.c')
+sources += files('buffer.c', 'keyval.c', 'memcmpfold.c')

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "keyval.h"
+#include "memcmpfold.h"
 
 keyval_storage_t new_keyval(size_t prealloc, size_t step) {
     return (keyval_storage_t) {
@@ -37,12 +38,7 @@ static bool slice_cmp_fold(slice_t s1, slice_t s2) {
     if (s1.len != s2.len)
         return false;
 
-    // FIXME: the trick with a|0x20 doesn't work good with non-letters; replace with LUT
-    for (size_t i = 0; i < s1.len; i++) {
-        if ((s1.data[i]|0x20) != (s2.data[i]|0x20)) return false;
-    }
-
-    return true;
+    return memcmpfold((char*)s1.data, (char*)s2.data, s1.len);
 }
 
 /*
@@ -54,4 +50,16 @@ keyval_pair_t* keyval_get(keyval_storage_t* storage, slice_t key) {
     }
 
     return NULL;
+}
+
+size_t keyval_len(keyval_storage_t* storage) {
+    return storage->len;
+}
+
+void keyval_clear(keyval_storage_t* storage) {
+    storage->len = 0;
+}
+
+void keyval_free(keyval_storage_t* storage) {
+    free(storage->pairs);
 }

@@ -27,5 +27,8 @@ typedef struct {
 keyval_storage_t new_keyval(size_t prealloc, size_t step);
 void keyval_append(keyval_storage_t* storage, slice_t key, slice_t value);
 keyval_pair_t* keyval_get(keyval_storage_t* storage, slice_t key);
+size_t keyval_len(keyval_storage_t* storage);
+void keyval_clear(keyval_storage_t* storage);
+void keyval_free(keyval_storage_t* storage);
 
 #endif //MARS_KEYVAL_H
