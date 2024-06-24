@@ -9,7 +9,7 @@
 void setUp(void) {}
 void tearDown(void) {}
 
-inline slice_t slice(const char* data, const size_t len) {
+static inline slice_t slice(const char* data, const size_t len) {
     return new_slice((byte_t*)data, len);
 }
 
