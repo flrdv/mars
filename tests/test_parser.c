@@ -31,7 +31,7 @@ static http_parser_t init_parser(void) {
 void test_no_headers(void) {
     http_parser_t parser = init_parser();
     char* sample = "GET / HTTP/1.1\r\n\r\n";
-    http_parse(&parser, (byte_t*)sample, strlen(sample));
+    http_parse(&parser, (byte_t*)sample, (ssize_t)strlen(sample));
     TEST_ASSERT(parser.request->method.method == GET);
     TEST_ASSERT(slice_cmp(parser.request->method.repr, new_slice((byte_t*)"GET", 3)));
     TEST_ASSERT(slice_cmp(parser.request->path, new_slice((byte_t*)"/", 1)));
