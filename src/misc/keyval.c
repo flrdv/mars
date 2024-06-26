@@ -17,21 +17,20 @@ keyval_storage_t new_keyval(size_t prealloc, size_t step) {
     };
 }
 
-static void keyval_grow_(keyval_storage_t* storage) {
-    size_t new_cap = storage->cap + storage->step;
+static void keyval_grow_(keyval_storage_t* self) {
+    size_t new_cap = self->cap + self->step;
     keyval_pair_t* new_mem = malloc(new_cap);
-    memcpy(new_mem, storage->pairs, storage->len);
-    free(storage->pairs);
-    storage->pairs = new_mem;
-    storage->cap = new_cap;
+    memcpy(new_mem, self->pairs, self->len);
+    free(self->pairs);
+    self->pairs = new_mem;
+    self->cap = new_cap;
 }
 
-void keyval_append(keyval_storage_t* storage, slice_t key, slice_t value) {
-    if (storage->len >= storage->cap)
-        keyval_grow_(storage);
+void keyval_append(keyval_storage_t* self, slice_t key, slice_t value) {
+    if (self->len >= self->cap) keyval_grow_(self);
 
-    storage->pairs[storage->len] = (keyval_pair_t) { key, value };
-    storage->len++;
+    self->pairs[self->len] = (keyval_pair_t) { key, value };
+    self->len++;
 }
 
 static bool slice_cmp_fold(slice_t s1, slice_t s2) {
@@ -44,22 +43,40 @@ static bool slice_cmp_fold(slice_t s1, slice_t s2) {
 /*
  * Returns a pointer to the found key-value pair, or NULL if not found
  */
-keyval_pair_t* keyval_get(keyval_storage_t* storage, slice_t key) {
-    for (size_t i = 0; i < storage->len; i++) {
-        if (slice_cmp_fold(key, storage->pairs[i].key)) return &storage->pairs[i];
+keyval_pair_t* keyval_get(keyval_storage_t* self, slice_t key) {
+    for (size_t i = 0; i < self->len; i++) {
+        if (slice_cmp_fold(key, self->pairs[i].key)) return &self->pairs[i];
     }
 
     return NULL;
 }
 
-size_t keyval_len(keyval_storage_t* storage) {
-    return storage->len;
+keyval_iterator_t keyval_values(keyval_storage_t* self, slice_t testkey) {
+    return (keyval_iterator_t) {
+        .testkey = testkey,
+        .storage = self,
+        .index = 0
+    };
 }
 
-void keyval_clear(keyval_storage_t* storage) {
-    storage->len = 0;
+keyval_pair_t* keyval_values_next(keyval_iterator_t* self) {
+    for (; self->index < self->storage->len; self->index++) {
+        if (slice_cmp_fold(self->storage->pairs[self->index].key, self->testkey)) {
+            return &self->storage->pairs[self->index++];
+        }
+    }
+    
+    return NULL;
 }
 
-void keyval_free(keyval_storage_t* storage) {
-    free(storage->pairs);
+size_t keyval_len(keyval_storage_t* self) {
+    return self->len;
+}
+
+void keyval_clear(keyval_storage_t* self) {
+    self->len = 0;
+}
+
+void keyval_free(keyval_storage_t* self) {
+    free(self->pairs);
 }

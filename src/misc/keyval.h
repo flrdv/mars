@@ -24,11 +24,19 @@ typedef struct {
     size_t step;
 } keyval_storage_t;
 
+typedef struct {
+    slice_t testkey;
+    keyval_storage_t* storage;
+    size_t index;
+} keyval_iterator_t;
+
 keyval_storage_t new_keyval(size_t prealloc, size_t step);
-void keyval_append(keyval_storage_t* storage, slice_t key, slice_t value);
-keyval_pair_t* keyval_get(keyval_storage_t* storage, slice_t key);
-size_t keyval_len(keyval_storage_t* storage);
-void keyval_clear(keyval_storage_t* storage);
-void keyval_free(keyval_storage_t* storage);
+void keyval_append(keyval_storage_t* self, slice_t key, slice_t value);
+keyval_pair_t* keyval_get(keyval_storage_t* self, slice_t key);
+keyval_iterator_t keyval_values(keyval_storage_t* self, slice_t key);
+keyval_pair_t* keyval_values_next(keyval_iterator_t* self);
+size_t keyval_len(keyval_storage_t* self);
+void keyval_clear(keyval_storage_t* self);
+void keyval_free(keyval_storage_t* self);
 
 #endif //MARS_KEYVAL_H
