@@ -10,7 +10,7 @@ void setUp(void) {}
 void tearDown(void) {}
 
 static inline slice_t slice(const char* data, const size_t len) {
-    return new_slice((byte_t*)data, len);
+    return slice_new((byte_t*)data, len);
 }
 
 void test_method_parse(void) {

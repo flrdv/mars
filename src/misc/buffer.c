@@ -54,7 +54,7 @@ slice_t buffer_segment(buffer_t* buff) {
     byte_t *segment = &buff->mem[buff->offset];
     size_t len = buff->len - buff->offset;
     buff->offset = buff->len;
-    return new_slice(segment, len);
+    return slice_new(segment, len);
 }
 
 size_t buffer_segment_len(buffer_t* buff) {

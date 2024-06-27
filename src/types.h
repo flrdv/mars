@@ -17,9 +17,9 @@ typedef struct {
     size_t len;
 } slice_t;
 
-slice_t new_slice(byte_t* data, size_t len);
-
+slice_t slice_new(byte_t* data, size_t len);
 bool slice_cmp(slice_t a, slice_t b);
+char* slice_ascstr(slice_t self);
 
 #endif //MARS_TYPES_H
 

@@ -10,7 +10,7 @@ void setUp(void) {}
 void tearDown(void) {}
 
 static slice_t strslice(const char* data) {
-    return new_slice((byte_t*)data, strlen(data));
+    return slice_new((byte_t*)data, strlen(data));
 }
 
 void test_prealloc_get(void) {
