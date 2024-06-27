@@ -73,10 +73,10 @@ static uint32_t slicetou32(const slice_t slice) {
     return value;
 }
 
-http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const ssize_t len) {
+http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const ssize_t len) {
     ssize_t remains = len;
 
-    switch (parser->state) {
+    switch (self->state) {
         case ST_METHOD:
             goto st_method;
         case ST_URI:
@@ -100,15 +100,15 @@ http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const
     {
         const ssize_t space = find_char(data, remains, ' ');
         if (space == -1) {
-            HTTP_BUFFER_APPEND(parser->req_line_buff, data, remains, HTTP_STATUS_NOT_IMPLEMENTED)
+            HTTP_BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_NOT_IMPLEMENTED)
 
             return HTTP_PENDING;
         }
 
-        HTTP_BUFFER_APPEND(parser->req_line_buff, data, space, HTTP_STATUS_NOT_IMPLEMENTED)
+        HTTP_BUFFER_APPEND(self->req_line_buff, data, space, HTTP_STATUS_NOT_IMPLEMENTED)
         HTTP_ADVANCE(space+1);
-        slice_t segment = buffer_segment(parser->req_line_buff);
-        parser->request->method = (http_method_t) {
+        slice_t segment = buffer_segment(self->req_line_buff);
+        self->request->method = (http_method_t) {
             .method = http_parse_method(segment),
             .repr = segment
         };
@@ -116,21 +116,20 @@ http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const
         // fall through to st_uri
     }
 
-
     st_uri:
     {
         const ssize_t space = find_char(data, remains, ' ');
         if (space == -1) {
-            HTTP_BUFFER_APPEND(parser->req_line_buff, data, remains, HTTP_STATUS_REQUEST_URI_TOO_LONG)
-            parser->state = ST_URI;
+            HTTP_BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_REQUEST_URI_TOO_LONG)
+            self->state = ST_URI;
 
             return HTTP_PENDING;
         }
 
-        HTTP_BUFFER_APPEND(parser->req_line_buff, data, space, HTTP_STATUS_REQUEST_URI_TOO_LONG)
+        HTTP_BUFFER_APPEND(self->req_line_buff, data, space, HTTP_STATUS_REQUEST_URI_TOO_LONG)
         HTTP_ADVANCE(space+1);
-        const slice_t path = buffer_segment(parser->req_line_buff);
-        parser->request->path = path;
+        const slice_t path = buffer_segment(self->req_line_buff);
+        self->request->path = path;
 
         // fall through to st_proto
     }
@@ -139,46 +138,49 @@ http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const
     {
         const ssize_t lf = find_char(data, remains, '\n');
         if (lf == -1) {
-            HTTP_BUFFER_APPEND(parser->req_line_buff, data, remains, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
-            parser->state = ST_PROTO;
+            HTTP_BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
+            self->state = ST_PROTO;
 
             return HTTP_PENDING;
         }
 
-        HTTP_BUFFER_APPEND(parser->req_line_buff, data, lf, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
+        HTTP_BUFFER_APPEND(self->req_line_buff, data, lf, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
         HTTP_ADVANCE(lf+1);
-        slice_t protocol = buffer_segment(parser->req_line_buff);
+        slice_t protocol = buffer_segment(self->req_line_buff);
         strip_cr(&protocol);
-        parser->request->protocol = protocol;
+        self->request->protocol = protocol;
     }
 
     st_header_key:
     {
         if (!remains) {
-            parser->state = ST_HEADER_KEY;
+            self->state = ST_HEADER_KEY;
 
             return HTTP_PENDING;
         }
 
         switch (data[0]) {
-            case '\r':
-                goto st_last_lf;
-            case '\n':
-                goto complete_request;
+        case '\r':
+            HTTP_ADVANCE(1);
+            goto st_last_lf;
+        case '\n':
+            HTTP_ADVANCE(1);
+            goto complete_request;
+        default: ;
         }
 
         const ssize_t colon = find_char(data, remains, ':');
         if (colon == -1) {
-            HTTP_BUFFER_APPEND(parser->header_buff, data, remains, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
-            parser->state = ST_HEADER_KEY;
+            HTTP_BUFFER_APPEND(self->header_buff, data, remains, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
+            self->state = ST_HEADER_KEY;
 
             return HTTP_PENDING;
         }
 
-        HTTP_BUFFER_APPEND(parser->header_buff, data, colon, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
+        HTTP_BUFFER_APPEND(self->header_buff, data, colon, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
         HTTP_ADVANCE(colon+1);
-        slice_t header_key = buffer_segment(parser->header_buff);
-        parser->current_header_key = header_key;
+        slice_t header_key = buffer_segment(self->header_buff);
+        self->current_header_key = header_key;
 
         // fall through to st_header_space
     }
@@ -186,7 +188,7 @@ http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const
     st_header_space:
     {
         if (!remains) {
-            parser->state = ST_HEADER_SPACE;
+            self->state = ST_HEADER_SPACE;
 
             return HTTP_PENDING;
         }
@@ -205,41 +207,42 @@ http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const
     {
         const ssize_t lf = find_char(data, remains, '\n');
         if (lf == -1) {
-            HTTP_BUFFER_APPEND(parser->header_buff, data, lf, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
-            parser->state = ST_HEADER_VALUE;
+            HTTP_BUFFER_APPEND(self->header_buff, data, lf, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
+            self->state = ST_HEADER_VALUE;
 
             return HTTP_PENDING;
         }
 
-        HTTP_BUFFER_APPEND(parser->header_buff, data, lf, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
+        HTTP_BUFFER_APPEND(self->header_buff, data, lf, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
         HTTP_ADVANCE(lf+1);
-        slice_t value = buffer_segment(parser->header_buff);
+        slice_t value = buffer_segment(self->header_buff);
         strip_cr(&value);
-        slice_t key = parser->current_header_key;
+        slice_t key = self->current_header_key;
 
         switch (key.len) {
-            case 14: // content-length
-                if (memcmpfold("content-length", (char*)key.data, 14)) {
-                    uint32_t content_length = slicetou32(value);
-                    if (content_length == UINT32_MAX) {
-                        return HTTP_ERROR(HTTP_STATUS_BAD_REQUEST);
-                    }
-
-                    parser->request->content_length = content_length;
+        case 14: // content-length
+            if (memcmpfold("content-length", (char*)key.data, 14)) {
+                uint32_t content_length = slicetou32(value);
+                if (content_length == UINT32_MAX) {
+                    return HTTP_ERROR(HTTP_STATUS_BAD_REQUEST);
                 }
 
-                break;
+                self->request->content_length = content_length;
+            }
+
             // TODO: add Content-Type, Transfer-Encoding
+            break;
+        default: ;
         }
 
-        keyval_append(&parser->request->headers, key, value);
-        parser->headers_count++;
+        keyval_append(&self->request->headers, key, value);
+        self->headers_count++;
         goto st_header_key;
     }
     st_last_lf:
     {
         if (!remains) {
-            parser->state = ST_LAST_LF;
+            self->state = ST_LAST_LF;
 
             return HTTP_PENDING;
         }
@@ -248,19 +251,20 @@ http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, const
             return HTTP_ERROR(HTTP_STATUS_BAD_REQUEST);
         }
 
+        HTTP_ADVANCE(1);
         // fall through to complete_request
     }
 
     complete_request:
-    buffer_clear(parser->req_line_buff);
-    buffer_clear(parser->header_buff);
-    parser->headers_count = 0;
-    parser->state = ST_METHOD;
+    buffer_clear(self->req_line_buff);
+    buffer_clear(self->header_buff);
+    self->headers_count = 0;
+    self->state = ST_METHOD;
     return HTTP_DONE(remains);
 }
 
-void http_parser_free(http_parser_t* parser) {
-    buffer_free(parser->req_line_buff);
-    buffer_free(parser->header_buff);
-    http_request_free(parser->request);
+void http_parser_free(http_parser_t* self) {
+    buffer_free(self->req_line_buff);
+    buffer_free(self->header_buff);
+    http_request_free(self->request);
 }
