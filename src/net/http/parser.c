@@ -57,7 +57,7 @@ static inline void strip_cr(slice_t* slice) {
 }
 
 static uint32_t slicetou32(const slice_t slice) {
-    uint32_t value;
+    uint32_t value = 0;
 
     for (size_t i = 0; i < slice.len; i++) {
         if (slice.data[i] == ' ') continue;

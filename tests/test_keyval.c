@@ -9,7 +9,7 @@
 void setUp(void) {}
 void tearDown(void) {}
 
-static inline slice_t strslice(const char* data) {
+static slice_t strslice(const char* data) {
     return new_slice((byte_t*)data, strlen(data));
 }
 
@@ -31,9 +31,11 @@ void test_grow(void) {
     keyval_append(&storage, strslice("HELLO"), strslice("world"));
     keyval_append(&storage, strslice("abba"), strslice("baab"));
     keyval_append(&storage, strslice("lol"), strslice("rofl"));
+    const keyval_pair_t* value = keyval_get(&storage, strslice("lol"));
+    TEST_ASSERT(value != NULL);
     TEST_ASSERT(slice_cmp(
             strslice("rofl"),
-            keyval_get(&storage, strslice("lol"))->value)
+            value->value)
     );
     keyval_clear(&storage);
     TEST_ASSERT(keyval_get(&storage, strslice("lol")) == NULL);
@@ -52,6 +54,7 @@ void test_values_iter(void) {
     TEST_ASSERT(slice_cmp(keyval_values_next(&values)->value, strslice("WORLD")));
     TEST_ASSERT(slice_cmp(keyval_values_next(&values)->value, strslice("woRLd")));
     TEST_ASSERT(keyval_values_next(&values) == NULL);
+    keyval_free(&storage);
 }
 
 int main(void) {
