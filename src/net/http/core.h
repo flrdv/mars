@@ -1,10 +1,8 @@
 //
-// Created by pavlo on 12-Jun-24.
+// Created by pavlo on 28.06.24.
 //
 
-#ifndef MARS_MARS_HTTP_H
-#define MARS_MARS_HTTP_H
+#ifndef MARS_SRC_NET_HTTP_CORE_H
+#define MARS_SRC_NET_HTTP_CORE_H
 
-#include <stdint.h>
-
-#endif //MARS_MARS_HTTP_H
+#endif //MARS_SRC_NET_HTTP_CORE_H
