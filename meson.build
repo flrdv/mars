@@ -8,6 +8,7 @@ subdir('tests')
 subdir('src')
 subdir('src/misc')
 subdir('src/net/http')
+subdir('src/net/http/encodings')
 
 # Dependencies
 unity_dep = subproject('unity').get_variable('unity_dep')
