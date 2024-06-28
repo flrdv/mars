@@ -19,6 +19,12 @@ enum http_encoding_chunked_state {
     ST_LAST_CHUNK_LF,
 };
 
+struct http_encoding_chunked {
+    bool done;
+    enum http_encoding_chunked_state state;
+    uint32_t chunk_remaining;
+};
+
 http_encoding_chunked http_encoding_chunked_new(void) {
     return (http_encoding_chunked) {
         .done = false,
