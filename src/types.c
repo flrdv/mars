@@ -2,7 +2,7 @@
 // Created by pavlo on 19.06.24.
 //
 
-#include <stdlib.h>
+#include <string.h>
 #include "types.h"
 
 slice_t slice_new(byte_t* data, size_t len) {

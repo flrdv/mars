@@ -6,9 +6,8 @@
 #define MARS_TYPES_H
 
 #include <inttypes.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include <string.h>
+#include <stdlib.h>
 
 typedef uint8_t byte_t;
 

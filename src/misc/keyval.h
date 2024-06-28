@@ -5,6 +5,7 @@
 #ifndef MARS_KEYVAL_H
 #define MARS_KEYVAL_H
 
+#include <sys/types.h>
 #include "types.h"
 
 typedef struct {

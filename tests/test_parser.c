@@ -3,6 +3,7 @@
 //
 
 #include <stdlib.h>
+#include <string.h>
 #include "types.h"
 #include "misc/keyval.h"
 #include "net/http/parser.h"

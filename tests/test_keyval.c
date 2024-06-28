@@ -2,6 +2,7 @@
 // Created by floordiv on 23-Jun-24.
 //
 
+#include <string.h>
 #include "misc/keyval.h"
 #include "types.h"
 #include "unity.h"
