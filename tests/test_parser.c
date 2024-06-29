@@ -12,6 +12,10 @@
 void setUp(void) {}
 void tearDown(void) {}
 
+slice_t strslice(char* str) {
+    return slice_new((byte_t*)str, strlen(str));
+}
+
 static buffer_t* init_buffer(int prealloc, int max_size) {
     buffer_t* buff = malloc(sizeof(buffer_t));
     *buff = buffer_new(prealloc, max_size);
@@ -39,9 +43,9 @@ void test_no_headers(void) {
     TEST_ASSERT(status.extra_size == 0);
 
     TEST_ASSERT(parser.request->method.method == GET);
-    TEST_ASSERT(slice_cmp(parser.request->method.repr, slice_new("GET", 3)));
-    TEST_ASSERT(slice_cmp(parser.request->path, slice_new("/", 1)));
-    TEST_ASSERT(slice_cmp(parser.request->protocol, slice_new("HTTP/1.1", 8)));
+    TEST_ASSERT(slice_cmp(parser.request->method.repr, strslice("GET")));
+    TEST_ASSERT(slice_cmp(parser.request->path, strslice("/")));
+    TEST_ASSERT(slice_cmp(parser.request->protocol, strslice("HTTP/1.1")));
     TEST_ASSERT(keyval_len(&parser.request->headers) == 0);
 }
 
@@ -55,17 +59,17 @@ void test_with_headers(void) {
     TEST_ASSERT(status.extra_size == 0);
 
     TEST_ASSERT(parser.request->method.method == GET);
-    TEST_ASSERT(slice_cmp(parser.request->method.repr, slice_new("GET", 3)));
-    TEST_ASSERT(slice_cmp(parser.request->path, slice_new("/", 1)));
-    TEST_ASSERT(slice_cmp(parser.request->protocol, slice_new("HTTP/1.1", 8)));
+    TEST_ASSERT(slice_cmp(parser.request->method.repr, strslice("GET")));
+    TEST_ASSERT(slice_cmp(parser.request->path, strslice("/")));
+    TEST_ASSERT(slice_cmp(parser.request->protocol, strslice("HTTP/1.1")));
     TEST_ASSERT(keyval_len(&parser.request->headers) == 2);
     TEST_ASSERT(slice_cmp(
-        keyval_get(&parser.request->headers, slice_new("hello", 5))->value,
-        slice_new("World", 5)
+        keyval_get(&parser.request->headers, strslice("hello"))->value,
+        strslice("World")
     ));
     TEST_ASSERT(slice_cmp(
-        keyval_get(&parser.request->headers, slice_new("content-length", 14))->value,
-        slice_new("13", 2)
+        keyval_get(&parser.request->headers, strslice("content-length"))->value,
+        strslice("13")
     ));
     TEST_ASSERT(parser.request->content_length == 13);
 }
