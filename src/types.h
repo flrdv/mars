@@ -7,9 +7,11 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdlib.h>
+#include <stddef.h>
 
 typedef uint8_t byte_t;
+
+#define SLICE_NULL slice_new(NULL, 0)
 
 typedef struct {
     byte_t* data;
