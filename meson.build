@@ -5,6 +5,7 @@ sources = []
 tests = []
 
 subdir('tests')
+subdir('tests/dummy')
 subdir('src')
 subdir('src/misc')
 subdir('src/net/http')
