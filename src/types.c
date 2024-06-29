@@ -2,6 +2,7 @@
 // Created by pavlo on 19.06.24.
 //
 
+#include <stdlib.h>
 #include <string.h>
 #include "types.h"
 

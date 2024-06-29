@@ -7,7 +7,6 @@
 
 #include "types.h"
 
-#define SLICE_NULL slice_new(NULL, 0)
 #define HTTP_ENCODE_PENDING 0
 #define HTTP_ENCODE_DONE 1
 #define HTTP_ENCODE_ERR_READ 2

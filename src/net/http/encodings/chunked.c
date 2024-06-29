@@ -2,6 +2,7 @@
 // Created by pavlo on 28.06.24.
 //
 
+#include <stdlib.h>
 #include "chunked.h"
 
 #define JUMP(i, label) \
@@ -39,7 +40,7 @@ http_encode_status http_encoding_chunked_read(http_encoding_chunked* self, const
     net_status read_status = client->read(client->self);
     // TODO: replace ok by errno and return it instead of bool flag "something went wrong".
     // TODO: This leads to ambiguous errors
-    if (!read_status.ok) return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_READ);
+    if (read_status.errno) return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_READ);
 
     slice_t data = read_status.data;
 
