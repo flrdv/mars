@@ -2,8 +2,8 @@
 // Created by floordiv on 22-Jun-24.
 //
 
-#ifndef MARS_KEYVAL_H
-#define MARS_KEYVAL_H
+#ifndef MARS_SRC_MISC_KEYVAL_H
+#define MARS_SRC_MISC_KEYVAL_H
 
 #include <sys/types.h>
 #include "types.h"
@@ -40,4 +40,4 @@ size_t keyval_len(const keyval_storage_t* self);
 void keyval_clear(keyval_storage_t* self);
 void keyval_free(const keyval_storage_t* self);
 
-#endif //MARS_KEYVAL_H
+#endif //MARS_SRC_MISC_KEYVAL_H
