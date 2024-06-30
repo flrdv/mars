@@ -25,3 +25,10 @@ char* slice_ascstr(const slice_t self) {
     str[self.len] = 0;
     return str;
 }
+
+slice_t slice_clone(slice_t self) {
+    byte_t* clone = malloc(self.len);
+    memcpy(clone, self.data, self.len);
+
+    return slice_new(clone, self.len);
+}
