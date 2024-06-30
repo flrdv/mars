@@ -27,8 +27,6 @@ static bool buffer_grow(buffer_t* buff, size_t increment) {
     if (new_cap > buff->max_cap) return false;
 
     byte_t* new_mem = malloc(new_cap);
-    // copy up to len instead of cap because space after the len
-    // must anyway be empty
     memcpy(new_mem, buff->mem, buff->len);
     free(buff->mem);
     buff->mem = new_mem;
@@ -41,7 +39,7 @@ bool buffer_append(buffer_t* buff, const byte_t* const data, size_t size) {
         TRY_GROW(buff, size - (buff->cap - buff->len));
     }
 
-    memcpy(buff->mem + buff->len, data, size);
+    memcpy(&buff->mem[buff->len], data, size);
     buff->len += size;
     return true;
 }
