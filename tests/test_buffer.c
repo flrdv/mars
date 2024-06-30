@@ -35,6 +35,7 @@ void test_buffer_exceed_cap(void) {
     buffer_t buffer = buffer_new(1, 3);
     TEST_ASSERT(buffer_append_char(&buffer, "abc", 3));
     TEST_ASSERT_FALSE(buffer_append_char(&buffer, "a", 1));
+    buffer_free(&buffer);
 }
 
 int main(void) {
