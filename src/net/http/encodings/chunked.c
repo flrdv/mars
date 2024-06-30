@@ -3,147 +3,168 @@
 //
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "chunked.h"
 
-#define JUMP(i, label) \
-    data.data += (i);  \
-    data.len -= (i);   \
-    goto label
+#define ADVANCE(i)    \
+    data.data += (i); \
+    data.len -= (i)
 
-enum http_encoding_chunked_state {
-    ST_LENGTH,
-    ST_LENGTH_LF,
-    ST_CHUNK,
-    ST_CHUNK_FIN,
-    ST_CHUNK_LF,
-    ST_LAST_CHUNK,
-    ST_LAST_CHUNK_LF,
-};
+#define MOVE(i, lbl) \
+    ADVANCE(i);      \
+    goto lbl
 
-struct http_encoding_chunked {
-    bool done;
-    enum http_encoding_chunked_state state;
-    uint32_t chunk_remaining;
-};
-
-http_encoding_chunked http_encoding_chunked_new(void) {
-    return (http_encoding_chunked) {
-        .done = false,
-        .state = ST_LENGTH,
+http_encoding_chunked_t http_encoding_chunked_new(void) {
+    return (http_encoding_chunked_t) {
+        .state = CHUNKED_ST_LENGTH,
         .chunk_remaining = 0
     };
 }
 
-http_encode_status http_encoding_chunked_read(http_encoding_chunked* self, const net_client* client) {
-    if (self->done) return HTTP_ENCODE_STATUS_DONE(SLICE_NULL);
+// hex decode table. Shifted by one in order to catch invalid values, as valid ones
+// are guaranteed to be greater than zero
+static const byte_t HEX_DECODE_LUT[256] = {
+    ['0'] = 0x0 + 1,
+    ['1'] = 0x1 + 1,
+    ['2'] = 0x2 + 1,
+    ['3'] = 0x3 + 1,
+    ['4'] = 0x4 + 1,
+    ['5'] = 0x5 + 1,
+    ['6'] = 0x6 + 1,
+    ['7'] = 0x7 + 1,
+    ['8'] = 0x8 + 1,
+    ['9'] = 0x9 + 1,
+    ['a'] = 0xa + 1,
+    ['b'] = 0xb + 1,
+    ['c'] = 0xc + 1,
+    ['d'] = 0xd + 1,
+    ['e'] = 0xe + 1,
+    ['f'] = 0xf + 1,
+    ['A'] = 0xA + 1,
+    ['B'] = 0xB + 1,
+    ['C'] = 0xC + 1,
+    ['D'] = 0xD + 1,
+    ['E'] = 0xE + 1,
+    ['F'] = 0xF + 1,
+};
 
-    net_status read_status = client->read(client->self);
-    // TODO: replace ok by errno and return it instead of bool flag "something went wrong".
-    // TODO: This leads to ambiguous errors
+http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, const net_client_t* client) {
+    net_status_t read_status = client->read(client->self);
     if (read_status.errno) return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_READ);
 
     slice_t data = read_status.data;
 
     switch (self->state) {
-    case ST_LENGTH:        goto st_length;
-    case ST_LENGTH_LF:     goto st_length_lf;
-    case ST_CHUNK:         goto st_chunk;
-    case ST_CHUNK_FIN:     goto st_chunk_fin;
-    case ST_CHUNK_LF:      goto st_chunk_lf;
-    case ST_LAST_CHUNK:    goto st_last_chunk;
-    case ST_LAST_CHUNK_LF: goto st_last_chunk_lf;
+    case CHUNKED_ST_LENGTH:        goto st_length;
+    case CHUNKED_ST_LENGTH_LF:     goto st_length_lf;
+    case CHUNKED_ST_CHUNK:         goto st_chunk;
+    case CHUNKED_ST_CHUNK_FIN:     goto st_chunk_fin;
+    case CHUNKED_ST_CHUNK_LF:      goto st_chunk_lf;
+    case CHUNKED_ST_LAST_CHUNK:    goto st_last_chunk;
+    case CHUNKED_ST_LAST_CHUNK_LF: goto st_last_chunk_lf;
     }
 
     st_length:
         for (size_t i = 0; i < data.len; i++) {
             switch (data.data[i]) {
-            case '\r': JUMP(i+1, st_length_lf);
-            case '\n': JUMP(i+1, st_chunk);
-            default:
-                if (!(data.data[i] >= '0' && data.data[i] <= '9'))
-                    return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
-
-                self->chunk_remaining = (self->chunk_remaining * 10) + data.data[i] - '0';
+            case '\r': MOVE(i+1, st_length_lf);
+            case '\n': MOVE(i+1, st_length_next_state);
+            default: ;
             }
+
+            const uint8_t halfbyte = HEX_DECODE_LUT[data.data[i]];
+            if (!halfbyte) return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
+
+            self->chunk_remaining = (self->chunk_remaining << 4) | (halfbyte-1);
         }
 
-        self->state = ST_LENGTH;
-        return HTTP_ENCODE_STATUS_OK(SLICE_NULL);  // pending data
-
+        self->state = CHUNKED_ST_LENGTH;
+        return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
+    
     st_length_lf:
         if (data.len == 0) {
-            self->state = ST_LENGTH_LF;
+            self->state = CHUNKED_ST_LENGTH_LF;
 
-            return HTTP_ENCODE_STATUS_OK(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
         }
 
         if (data.data[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
-        JUMP(1, st_chunk);
+        ADVANCE(1);
+        // fall through
 
-    st_chunk:
+    st_length_next_state:
         if (self->chunk_remaining == 0)
-            // last chunk
             goto st_last_chunk;
 
+        // fall through
+
+    st_chunk:
         if (data.len < self->chunk_remaining) {
-            self->state = ST_CHUNK;
+            self->state = CHUNKED_ST_CHUNK;
             self->chunk_remaining -= data.len;
-            return HTTP_ENCODE_STATUS_OK(data);
+            return HTTP_ENCODE_STATUS_PENDING(data);
         }
 
         slice_t extra = slice_new(&data.data[self->chunk_remaining], data.len-self->chunk_remaining);
         client->preserve(client->self, extra);
         data.len = self->chunk_remaining;
-        self->state = ST_CHUNK_FIN;
-        return HTTP_ENCODE_STATUS_OK(data);
+        self->state = CHUNKED_ST_CHUNK_FIN;
+        self->chunk_remaining = 0;
+
+        return HTTP_ENCODE_STATUS_PENDING(data);
 
     st_chunk_fin:
         if (data.len == 0)
-            return HTTP_ENCODE_STATUS_OK(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
 
         switch (data.data[0]) {
-        case '\r': JUMP(1, st_chunk_lf);
-        case '\n': JUMP(1, st_length);
+        case '\r': MOVE(1, st_chunk_lf);
+        case '\n': MOVE(1, st_length);
         default: return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
         }
 
     st_chunk_lf:
         if (data.len == 0) {
-            self->state = ST_CHUNK_LF;
+            self->state = CHUNKED_ST_CHUNK_LF;
 
-            return HTTP_ENCODE_STATUS_OK(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
         }
 
         if (data.data[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
-        JUMP(1, st_length);
+        MOVE(1, st_length);
 
     st_last_chunk:
         if (data.len == 0) {
-            self->state = ST_LAST_CHUNK;
+            self->state = CHUNKED_ST_LAST_CHUNK;
 
-            return HTTP_ENCODE_STATUS_OK(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
         }
 
         switch (data.data[0]) {
-        case '\r': JUMP(1, st_last_chunk_lf);
-        case '\n': JUMP(1, st_length);
+        case '\r': MOVE(1, st_last_chunk_lf);
+        case '\n': MOVE(1, st_done);
         default: return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
         }
 
     st_last_chunk_lf:
         if (data.len == 0) {
-            self->state = ST_LAST_CHUNK;
+            self->state = CHUNKED_ST_LAST_CHUNK;
 
-            return HTTP_ENCODE_STATUS_OK(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
         }
 
         // TODO: support trailer
         if (data.data[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
-        JUMP(1, st_length);
+        ADVANCE(1);
+        // fall through
+
+    st_done:
+        client->preserve(client->self, data);
+        return HTTP_ENCODE_STATUS_DONE(SLICE_NULL);
 }
