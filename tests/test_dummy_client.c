@@ -23,8 +23,8 @@ void test_reads(void) {
     slice_t reads[4] = {
         strslice("Hel"), strslice("lo,"), strslice(" World"), strslice("!")
     };
-    dummy_client* dummy = dummy_client_new(reads, 4);
-    const net_client client = dummy_client_as_net_client(dummy);
+    dummy_client_t* dummy = dummy_client_new(reads, 4);
+    const net_client_t client = dummy_client_as_net(dummy);
 
 #define TEST_READ(str)               \
     TEST_ASSERT(status.errno == 0);  \
@@ -32,8 +32,7 @@ void test_reads(void) {
         status.data, strslice(str)   \
     ));
 
-    net_status status = client.read(client.self);
-    printf("status=%ld, datalen=%lu\n", status.errno, status.data.len);
+    net_status_t status = client.read(client.self);
     TEST_READ("Hel")
     status = client.read(client.self);
     TEST_READ("lo,")

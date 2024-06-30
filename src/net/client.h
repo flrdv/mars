@@ -16,19 +16,19 @@
 #define NET_OK 0
 #define NET_EOF 1
 
-#define NET_STATUS(s, d) (net_status) { .errno = s, .data = d }
+#define NET_STATUS(s, d) (net_status_t) { .errno = s, .data = d }
 
-typedef struct net_status {
+typedef struct net_status_t {
     ssize_t errno;
     slice_t data;
-} net_status;
+} net_status_t;
 
-typedef struct net_client {
+typedef struct net_client_t {
     void* self;
-    net_status (*read)(void*);
+    net_status_t (*read)(void*);
     int (*write)(void*, slice_t);
     void (*preserve)(void*, slice_t);
     ssize_t (*close)(void*);
-} net_client;
+} net_client_t;
 
 #endif //MARS_NET_CLIENT_H
