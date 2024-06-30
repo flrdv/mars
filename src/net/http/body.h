@@ -6,6 +6,7 @@
 #define BODY_H
 
 #include <stdbool.h>
+#include "net/client.h"
 
 enum http_transfer_encoding {
     Chunked,
@@ -21,7 +22,9 @@ typedef struct http_body_te_t {
 
 typedef struct http_body_t {
     http_body_te_t transfer_encodings;
-
+    net_client_t client;
 } http_body_t;
+
+slice_t http_body_read(http_body_t* self);
 
 #endif //BODY_H
