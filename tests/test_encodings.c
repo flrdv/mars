@@ -77,12 +77,9 @@ slice_t test_partial_chunked(char* sample, size_t step, char* extra) {
         case HTTP_ENCODE_PENDING:
             TEST_ASSERT(buffer_append(&buffer, status.data.data, status.data.len));
             break;
-        case HTTP_ENCODE_ERR_READ:
-            TEST_FAIL_MESSAGE("received unexpected ERR_READ");
-        case HTTP_ENCODE_ERR_BAD_DATA:
-            TEST_FAIL_MESSAGE("received unexpected ERR_BAD_DATA");
-        default:
-            TEST_FAIL_MESSAGE("received unrecognized encoding status");
+        case HTTP_ENCODE_ERR_READ:     TEST_FAIL_MESSAGE("received unexpected ERR_READ");
+        case HTTP_ENCODE_ERR_BAD_DATA: TEST_FAIL_MESSAGE("received unexpected ERR_BAD_DATA");
+        default:                       TEST_FAIL_MESSAGE("received unrecognized encoding status");
         }
     }
 
@@ -98,8 +95,12 @@ exit:
 
 void test_chunked(void) {
     char* sample = "d\r\nHello, world!\r\n5\r\npavlo\r\n0\r\n\r\nextra";
-    slice_t result = test_partial_chunked(sample, strlen(sample), "extra");
-    TEST_ASSERT(memcmp("Hello, world!pavlo", result.data, result.len) == 0);
+
+    for (size_t i = 1; i <= strlen(sample); i++) {
+        slice_t result = test_partial_chunked(sample, i, "extra");
+        char* out; asprintf(&out, "failed on step size: %lu\n", i);
+        TEST_ASSERT_MESSAGE(memcmp("Hello, world!pavlo", result.data, result.len) == 0, out);
+    }
 }
 
 int main(void) {
