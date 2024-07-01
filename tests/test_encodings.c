@@ -28,19 +28,19 @@ void test_plain(void) {
 
     http_encode_status_t status = http_encoding_plain_read(&enc, &client);
     TEST_ASSERT(status.status == HTTP_ENCODE_PENDING);
-    TEST_ASSERT(status.data.len == 3);
+    TEST_ASSERT(slice_cmp(strslice("Hel"), status.data));
 
     status = http_encoding_plain_read(&enc, &client);
     TEST_ASSERT(status.status == HTTP_ENCODE_PENDING);
-    TEST_ASSERT(status.data.len == 4);
+    TEST_ASSERT(slice_cmp(strslice("lo, "), status.data));
 
     status = http_encoding_plain_read(&enc, &client);
     TEST_ASSERT(status.status == HTTP_ENCODE_PENDING);
-    TEST_ASSERT(status.data.len == 5);
+    TEST_ASSERT(slice_cmp(strslice("World"), status.data));
 
     status = http_encoding_plain_read(&enc, &client);
     TEST_ASSERT(status.status == HTTP_ENCODE_DONE);
-    TEST_ASSERT(status.data.len == 1);
+    TEST_ASSERT(slice_cmp(strslice("!"), status.data));
 
     TEST_ASSERT(slice_cmp(dummy->preserved, strslice("extra")));
 
@@ -63,28 +63,29 @@ dummy_client_t* mock_client(char* str, size_t step) {
     return dummy_client_new(parts, parts_count);
 }
 
-slice_t test_partial_chunked(char* sample, size_t step) {
-    buffer_t buffer = buffer_new(strlen(sample), strlen(sample)*2);
-    http_encoding_chunked_t reader = http_encoding_chunked_new();
-    dummy_client_t* dummy = mock_client(sample, step);
-    net_client_t client = dummy_client_as_net(dummy);
-
+bool feed_data(http_encoding_chunked_t* reader, net_client_t* client, buffer_t* buffer) {
     for (;;) {
-        http_encode_status_t status = http_encoding_chunked_read(&reader, &client);
+        http_encode_status_t status = http_encoding_chunked_read(reader, client);
         switch (status.status) {
         case HTTP_ENCODE_DONE:
-            TEST_ASSERT(buffer_append(&buffer, status.data.data, status.data.len));
-            goto exit;
+            TEST_ASSERT(buffer_append(buffer, status.data.data, status.data.len));
+            return true;
         case HTTP_ENCODE_PENDING:
-            TEST_ASSERT(buffer_append(&buffer, status.data.data, status.data.len));
+            TEST_ASSERT(buffer_append(buffer, status.data.data, status.data.len));
             break;
         case HTTP_ENCODE_ERR_READ:     TEST_FAIL_MESSAGE("received unexpected ERR_READ");
         case HTTP_ENCODE_ERR_BAD_DATA: TEST_FAIL_MESSAGE("received unexpected ERR_BAD_DATA");
         default:                       TEST_FAIL_MESSAGE("received unrecognized encoding status");
         }
     }
+}
 
-exit:
+slice_t test_partial_chunked(char* sample, size_t step) {
+    buffer_t buffer = buffer_new(strlen(sample), strlen(sample)*2);
+    http_encoding_chunked_t reader = http_encoding_chunked_new();
+    dummy_client_t* dummy = mock_client(sample, step);
+    net_client_t client = dummy_client_as_net(dummy);
+    feed_data(&reader, &client, &buffer);
     free(dummy->reads);
     dummy_client_free(dummy);
     slice_t data = slice_clone(buffer_segment(&buffer));
@@ -94,7 +95,7 @@ exit:
 }
 
 void test_chunked(void) {
-    char* sample = "d\r\nHello, world!\r\n5\r\npavlo\r\n0\r\n\r\nextra";
+    char* sample = "d\r\nHello, world!\r\n5\r\npavlo\r\n0\r\n\r\n";
 
     for (size_t i = 1; i <= strlen(sample); i++) {
         slice_t result = test_partial_chunked(sample, i);
@@ -103,9 +104,23 @@ void test_chunked(void) {
     }
 }
 
+void test_chunked_extra(void) {
+    char* sample = "d\r\nHello, world!\r\n5\r\npavlo\r\n0\r\n\r\nextra";
+    dummy_client_t* dummy = mock_client(sample, strlen(sample));
+    net_client_t client = dummy_client_as_net(dummy);
+    buffer_t buff = buffer_new(0, 1024);
+    http_encoding_chunked_t reader = http_encoding_chunked_new();
+    feed_data(&reader, &client, &buff);
+
+    TEST_ASSERT(slice_cmp(dummy->preserved, strslice("extra")));
+    buffer_free(&buff);
+    dummy_client_free(dummy);
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_plain);
     RUN_TEST(test_chunked);
+    RUN_TEST(test_chunked_extra);
     return UNITY_END();
 }
