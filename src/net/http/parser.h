@@ -41,9 +41,9 @@ http_parser_t http_new_parser(
         http_request_t* req, buffer_t* req_line_buff, buffer_t* header_buff
 );
 
-http_parser_status_t http_parse(http_parser_t* parser, const byte_t* data, ssize_t len);
+http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, ssize_t len);
 
-void http_parser_free(http_parser_t* parser);
+void http_parser_free(http_parser_t* self);
 
 #endif //MARS_HTTP_PARSER_H
 

@@ -6,24 +6,24 @@
 #include "parser.h"
 #include "misc/memcmpfold.h"
 
-#define HTTP_BUFFER_APPEND(buff, data, len, err) if (!buffer_append(buff, data, len)) { return HTTP_ERROR(err); }
-#define HTTP_ADVANCE(n) \
-    data = data+n;      \
+#define BUFFER_APPEND(buff, data, len, err) if (!buffer_append(buff, data, len)) { return ERROR(err); }
+#define ADVANCE(n) \
+    data = data+n; \
     remains -= n
-#define HTTP_ERROR(err) (http_parser_status_t) { \
-    .completed = false,                          \
-    .extra_size = 0,                             \
-    .error = err                                 \
+#define ERROR(err) (http_parser_status_t) { \
+    .completed = false,                     \
+    .extra_size = 0,                        \
+    .error = err                            \
 }
-#define HTTP_PENDING (http_parser_status_t) { \
-    .completed = false,                       \
-    .extra_size = 0,                          \
-    .error = 0                                \
+#define PENDING (http_parser_status_t) { \
+    .completed = false,                  \
+    .extra_size = 0,                     \
+    .error = 0                           \
 }
-#define HTTP_DONE(extra) (http_parser_status_t) { \
-    .completed = true,                            \
-    .extra_size = extra,                          \
-    .error = 0                                    \
+#define DONE(extra) (http_parser_status_t) { \
+    .completed = true,                       \
+    .extra_size = extra,                     \
+    .error = 0                               \
 }
 
 http_parser_t http_new_parser(
@@ -92,21 +92,21 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
         case ST_LAST_LF:
             goto st_last_lf;
         default:
-            puts("ERROR: net/http/parser.c: met unknown state");
-            return HTTP_ERROR(HTTP_STATUS_INTERNAL_SERVER_ERROR);
+            puts("ERROR: net/http/parser.c: received unknown state");
+            return ERROR(HTTP_STATUS_INTERNAL_SERVER_ERROR);
     }
 
     st_method:
     {
         const ssize_t space = find_char(data, remains, ' ');
         if (space == -1) {
-            HTTP_BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_NOT_IMPLEMENTED)
+            BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_NOT_IMPLEMENTED)
 
-            return HTTP_PENDING;
+            return PENDING;
         }
 
-        HTTP_BUFFER_APPEND(self->req_line_buff, data, space, HTTP_STATUS_NOT_IMPLEMENTED)
-        HTTP_ADVANCE(space+1);
+        BUFFER_APPEND(self->req_line_buff, data, space, HTTP_STATUS_NOT_IMPLEMENTED)
+        ADVANCE(space+1);
         slice_t segment = buffer_segment(self->req_line_buff);
         self->request->method = (http_method_t) {
             .method = http_parse_method(segment),
@@ -120,14 +120,14 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
     {
         const ssize_t space = find_char(data, remains, ' ');
         if (space == -1) {
-            HTTP_BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_REQUEST_URI_TOO_LONG)
+            BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_REQUEST_URI_TOO_LONG)
             self->state = ST_URI;
 
-            return HTTP_PENDING;
+            return PENDING;
         }
 
-        HTTP_BUFFER_APPEND(self->req_line_buff, data, space, HTTP_STATUS_REQUEST_URI_TOO_LONG)
-        HTTP_ADVANCE(space+1);
+        BUFFER_APPEND(self->req_line_buff, data, space, HTTP_STATUS_REQUEST_URI_TOO_LONG)
+        ADVANCE(space+1);
         const slice_t path = buffer_segment(self->req_line_buff);
         self->request->path = path;
 
@@ -138,14 +138,14 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
     {
         const ssize_t lf = find_char(data, remains, '\n');
         if (lf == -1) {
-            HTTP_BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
+            BUFFER_APPEND(self->req_line_buff, data, remains, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
             self->state = ST_PROTO;
 
-            return HTTP_PENDING;
+            return PENDING;
         }
 
-        HTTP_BUFFER_APPEND(self->req_line_buff, data, lf, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
-        HTTP_ADVANCE(lf+1);
+        BUFFER_APPEND(self->req_line_buff, data, lf, HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED)
+        ADVANCE(lf+1);
         slice_t protocol = buffer_segment(self->req_line_buff);
         strip_cr(&protocol);
         self->request->protocol = protocol;
@@ -156,29 +156,29 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
         if (!remains) {
             self->state = ST_HEADER_KEY;
 
-            return HTTP_PENDING;
+            return PENDING;
         }
 
         switch (data[0]) {
         case '\r':
-            HTTP_ADVANCE(1);
+            ADVANCE(1);
             goto st_last_lf;
         case '\n':
-            HTTP_ADVANCE(1);
+            ADVANCE(1);
             goto complete_request;
         default: ;
         }
 
         const ssize_t colon = find_char(data, remains, ':');
         if (colon == -1) {
-            HTTP_BUFFER_APPEND(self->header_buff, data, remains, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
+            BUFFER_APPEND(self->header_buff, data, remains, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
             self->state = ST_HEADER_KEY;
 
-            return HTTP_PENDING;
+            return PENDING;
         }
 
-        HTTP_BUFFER_APPEND(self->header_buff, data, colon, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
-        HTTP_ADVANCE(colon+1);
+        BUFFER_APPEND(self->header_buff, data, colon, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
+        ADVANCE(colon+1);
         slice_t header_key = buffer_segment(self->header_buff);
         self->current_header_key = header_key;
 
@@ -190,14 +190,14 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
         if (!remains) {
             self->state = ST_HEADER_SPACE;
 
-            return HTTP_PENDING;
+            return PENDING;
         }
 
         // optionally skip the following space. If there are multiple of them,
         // all of them, except the first one, are treated as a part of the value
 
         if (data[0] == ' ') {
-            HTTP_ADVANCE(1);
+            ADVANCE(1);
         }
 
         // fall through to st_header_value
@@ -207,14 +207,14 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
     {
         const ssize_t lf = find_char(data, remains, '\n');
         if (lf == -1) {
-            HTTP_BUFFER_APPEND(self->header_buff, data, lf, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
+            BUFFER_APPEND(self->header_buff, data, remains, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
             self->state = ST_HEADER_VALUE;
 
-            return HTTP_PENDING;
+            return PENDING;
         }
 
-        HTTP_BUFFER_APPEND(self->header_buff, data, lf, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
-        HTTP_ADVANCE(lf+1);
+        BUFFER_APPEND(self->header_buff, data, lf, HTTP_STATUS_HEADER_FIELDS_TOO_LARGE)
+        ADVANCE(lf+1);
         slice_t value = buffer_segment(self->header_buff);
         strip_cr(&value);
         slice_t key = self->current_header_key;
@@ -224,7 +224,7 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
             if (memcmpfold("content-length", (char*)key.data, 14)) {
                 uint32_t content_length = slicetou32(value);
                 if (content_length == UINT32_MAX) {
-                    return HTTP_ERROR(HTTP_STATUS_BAD_REQUEST);
+                    return ERROR(HTTP_STATUS_BAD_REQUEST);
                 }
 
                 self->request->content_length = content_length;
@@ -244,14 +244,14 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
         if (!remains) {
             self->state = ST_LAST_LF;
 
-            return HTTP_PENDING;
+            return PENDING;
         }
 
         if (data[0] != '\n') {
-            return HTTP_ERROR(HTTP_STATUS_BAD_REQUEST);
+            return ERROR(HTTP_STATUS_BAD_REQUEST);
         }
 
-        HTTP_ADVANCE(1);
+        ADVANCE(1);
         // fall through to complete_request
     }
 
@@ -260,7 +260,7 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
     buffer_clear(self->header_buff);
     self->headers_count = 0;
     self->state = ST_METHOD;
-    return HTTP_DONE(remains);
+    return DONE(remains);
 }
 
 void http_parser_free(http_parser_t* self) {
