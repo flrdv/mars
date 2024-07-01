@@ -152,7 +152,7 @@ http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, c
 
     st_last_chunk_lf:
         if (data.len == 0) {
-            self->state = CHUNKED_ST_LAST_CHUNK;
+            self->state = CHUNKED_ST_LAST_CHUNK_LF;
 
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
         }
