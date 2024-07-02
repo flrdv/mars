@@ -14,8 +14,8 @@
     ADVANCE(i);      \
     goto lbl
 
-http_encoding_chunked_t http_encoding_chunked_new(void) {
-    return (http_encoding_chunked_t) {
+http_enc_chunked_t http_enc_chunked_new(void) {
+    return (http_enc_chunked_t) {
         .state = CHUNKED_ST_LENGTH,
         .chunk_remaining = 0
     };
@@ -48,12 +48,7 @@ static const byte_t HEX_DECODE_LUT[256] = {
     ['F'] = 0xF + 1,
 };
 
-http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, const net_client_t* client) {
-    net_status_t read_status = client->read(client->self);
-    if (read_status.errno) return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_READ);
-
-    slice_t data = read_status.data;
-
+http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) {
     switch (self->state) {
     case CHUNKED_ST_LENGTH:        goto st_length;
     case CHUNKED_ST_LENGTH_LF:     goto st_length_lf;
@@ -79,13 +74,13 @@ http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, c
         }
 
         self->state = CHUNKED_ST_LENGTH;
-        return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
+        return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
     
     st_length_lf:
         if (data.len == 0) {
             self->state = CHUNKED_ST_LENGTH_LF;
 
-            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
         if (data.data[0] != '\n')
@@ -104,20 +99,19 @@ http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, c
         if (data.len < self->chunk_remaining) {
             self->state = CHUNKED_ST_CHUNK;
             self->chunk_remaining -= data.len;
-            return HTTP_ENCODE_STATUS_PENDING(data);
+            return HTTP_ENCODE_STATUS_PENDING(data, SLICE_NULL);
         }
 
         slice_t extra = slice_new(&data.data[self->chunk_remaining], data.len-self->chunk_remaining);
-        client->preserve(client->self, extra);
         data.len = self->chunk_remaining;
         self->state = CHUNKED_ST_CHUNK_FIN;
         self->chunk_remaining = 0;
 
-        return HTTP_ENCODE_STATUS_PENDING(data);
+        return HTTP_ENCODE_STATUS_PENDING(data, extra);
 
     st_chunk_fin:
         if (data.len == 0)
-            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
 
         switch (data.data[0]) {
         case '\r': MOVE(1, st_chunk_lf);
@@ -129,7 +123,7 @@ http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, c
         if (data.len == 0) {
             self->state = CHUNKED_ST_CHUNK_LF;
 
-            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
         if (data.data[0] != '\n')
@@ -141,7 +135,7 @@ http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, c
         if (data.len == 0) {
             self->state = CHUNKED_ST_LAST_CHUNK;
 
-            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
         switch (data.data[0]) {
@@ -154,7 +148,7 @@ http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, c
         if (data.len == 0) {
             self->state = CHUNKED_ST_LAST_CHUNK_LF;
 
-            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL);
+            return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
         // TODO: support trailer
@@ -165,6 +159,5 @@ http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, c
         // fall through
 
     st_done:
-        client->preserve(client->self, data);
-        return HTTP_ENCODE_STATUS_DONE(SLICE_NULL);
+        return HTTP_ENCODE_STATUS_DONE(SLICE_NULL, data);
 }

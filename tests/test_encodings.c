@@ -4,12 +4,12 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include "types.h"
+#include "misc/buffer.h"
+#include "dummy/client.h"
 #include "net/http/encodings/plain.h"
 #include "net/http/encodings/chunked.h"
-#include "types.h"
 #include "unity.h"
-#include "dummy/client.h"
-#include "misc/buffer.h"
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -19,32 +19,24 @@ slice_t strslice(char* str) {
 }
 
 void test_plain(void) {
-    slice_t reads[4] = {
-        strslice("Hel"), strslice("lo, "), strslice("World"), strslice("!extra")
-    };
-    dummy_client_t* dummy = dummy_client_new(reads, 4);
-    const net_client_t client = dummy_client_as_net(dummy);
-    http_encoding_plain_t enc = http_encoding_plain_new(13);
+    http_enc_plain_t enc = http_enc_plain_new(13);
 
-    http_encode_status_t status = http_encoding_plain_read(&enc, &client);
-    TEST_ASSERT(status.status == HTTP_ENCODE_PENDING);
-    TEST_ASSERT(slice_cmp(strslice("Hel"), status.data));
+#define TEST_STATUS(s, str, ex) \
+    TEST_ASSERT(status.status == s); \
+    TEST_ASSERT(slice_cmp(strslice(str), status.data)); \
+    TEST_ASSERT(slice_cmp(status.extra, ex))
 
-    status = http_encoding_plain_read(&enc, &client);
-    TEST_ASSERT(status.status == HTTP_ENCODE_PENDING);
-    TEST_ASSERT(slice_cmp(strslice("lo, "), status.data));
+    http_enc_status_t status = http_enc_plain_read(&enc, strslice("Hel"));
+    TEST_STATUS(HTTP_ENCODE_PENDING, "Hel", SLICE_NULL);
 
-    status = http_encoding_plain_read(&enc, &client);
-    TEST_ASSERT(status.status == HTTP_ENCODE_PENDING);
-    TEST_ASSERT(slice_cmp(strslice("World"), status.data));
+    status = http_enc_plain_read(&enc, strslice("lo, "));
+    TEST_STATUS(HTTP_ENCODE_PENDING, "lo, ", SLICE_NULL);
 
-    status = http_encoding_plain_read(&enc, &client);
-    TEST_ASSERT(status.status == HTTP_ENCODE_DONE);
-    TEST_ASSERT(slice_cmp(strslice("!"), status.data));
+    status = http_enc_plain_read(&enc, strslice("World"));
+    TEST_STATUS(HTTP_ENCODE_PENDING, "World", SLICE_NULL);
 
-    TEST_ASSERT(slice_cmp(dummy->preserved, strslice("extra")));
-
-    dummy_client_free(dummy);
+    status = http_enc_plain_read(&enc, strslice("!extra"));
+    TEST_STATUS(HTTP_ENCODE_DONE, "!", strslice("extra"));
 }
 
 size_t min(const size_t a, const size_t b) {
@@ -63,9 +55,13 @@ dummy_client_t* mock_client(char* str, size_t step) {
     return dummy_client_new(parts, parts_count);
 }
 
-bool feed_data(http_encoding_chunked_t* reader, net_client_t* client, buffer_t* buffer) {
+bool feed_data(http_enc_chunked_t* reader, net_client_t* client, buffer_t* buffer) {
     for (;;) {
-        http_encode_status_t status = http_encoding_chunked_read(reader, client);
+        net_status_t read = client->read(client->self);
+        TEST_ASSERT(read.errno == NET_OK);
+
+        http_enc_status_t status = http_enc_chunked_read(reader, read.data);
+        client->preserve(client->self, status.extra);
         switch (status.status) {
         case HTTP_ENCODE_DONE:
             TEST_ASSERT(buffer_append(buffer, status.data.data, status.data.len));
@@ -82,7 +78,7 @@ bool feed_data(http_encoding_chunked_t* reader, net_client_t* client, buffer_t* 
 
 slice_t test_partial_chunked(char* sample, size_t step) {
     buffer_t buffer = buffer_new(strlen(sample), strlen(sample)*2);
-    http_encoding_chunked_t reader = http_encoding_chunked_new();
+    http_enc_chunked_t reader = http_enc_chunked_new();
     dummy_client_t* dummy = mock_client(sample, step);
     net_client_t client = dummy_client_as_net(dummy);
     feed_data(&reader, &client, &buffer);
@@ -109,7 +105,7 @@ void test_chunked_extra(void) {
     dummy_client_t* dummy = mock_client(sample, strlen(sample));
     net_client_t client = dummy_client_as_net(dummy);
     buffer_t buff = buffer_new(0, 1024);
-    http_encoding_chunked_t reader = http_encoding_chunked_new();
+    http_enc_chunked_t reader = http_enc_chunked_new();
     feed_data(&reader, &client, &buff);
 
     TEST_ASSERT(slice_cmp(dummy->preserved, strslice("extra")));

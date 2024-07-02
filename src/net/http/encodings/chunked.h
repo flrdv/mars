@@ -18,12 +18,12 @@ enum http_encoding_chunked_state {
     CHUNKED_ST_LAST_CHUNK_LF,
 };
 
-typedef struct http_encoding_chunked_t {
+typedef struct http_enc_chunked_t {
     enum http_encoding_chunked_state state;
     uint32_t chunk_remaining;
-} http_encoding_chunked_t;
+} http_enc_chunked_t;
 
-http_encoding_chunked_t http_encoding_chunked_new(void);
-http_encode_status_t http_encoding_chunked_read(http_encoding_chunked_t* self, const net_client_t* client);
+http_enc_chunked_t http_enc_chunked_new(void);
+http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data);
 
 #endif //CHUNKED_H

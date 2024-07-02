@@ -9,11 +9,11 @@
 #include "net/client.h"
 #include "encoding.h"
 
-typedef struct http_encoding_plain_t {
+typedef struct http_enc_plain_t {
     size_t content_length;
-} http_encoding_plain_t;
+} http_enc_plain_t;
 
-http_encoding_plain_t http_encoding_plain_new(size_t);
-http_encode_status_t http_encoding_plain_read(http_encoding_plain_t* self, const net_client_t* client);
+http_enc_plain_t http_enc_plain_new(size_t);
+http_enc_status_t http_enc_plain_read(http_enc_plain_t* self, slice_t data);
 
 #endif //PLAIN_H
