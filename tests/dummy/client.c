@@ -55,7 +55,7 @@ void dummy_client_preserve(void* self, slice_t data) {
     ((dummy_client_t*)self)->preserved = data;
 }
 
-ssize_t dummy_client_close(void* s) {
+size_t dummy_client_close(void* s) {
     // so next calls will return EOF
     dummy_client_t* self = s;
     self->reads_head = self->reads_cap;
