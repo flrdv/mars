@@ -16,7 +16,7 @@ static slice_t strslice(const char* data) {
 
 void test_prealloc_get(void) {
     const int prealloc = 5, step = 10;
-    keyval_storage_t storage = new_keyval(prealloc, step);
+    keyval_t storage = new_keyval(prealloc, step);
     keyval_append(&storage, strslice("HELLO"), strslice("world"));
     keyval_append(&storage, strslice("abba"), strslice("baab"));
     TEST_ASSERT(slice_cmp(
@@ -28,7 +28,7 @@ void test_prealloc_get(void) {
 
 void test_grow(void) {
     const int prealloc = 2, step = 10;
-    keyval_storage_t storage = new_keyval(prealloc, step);
+    keyval_t storage = new_keyval(prealloc, step);
     keyval_append(&storage, strslice("HELLO"), strslice("world"));
     keyval_append(&storage, strslice("abba"), strslice("baab"));
     keyval_append(&storage, strslice("lol"), strslice("rofl"));
@@ -45,7 +45,7 @@ void test_grow(void) {
 
 void test_values_iter(void) {
     const int prealloc = 5, step = 10;
-    keyval_storage_t storage = new_keyval(prealloc, step);
+    keyval_t storage = new_keyval(prealloc, step);
     keyval_append(&storage, strslice("HELLO"), strslice("world"));
     keyval_append(&storage, strslice("lol"), strslice("rofl"));
     keyval_append(&storage, strslice("hello"), strslice("WORLD"));

@@ -7,6 +7,6 @@
 
 #include <stddef.h>
 
-#define ARRAY(T) struct { T* data; size_t len; }
+#define ARRAY(T) struct { size_t len; T* elems; }
 
 #endif //MARS_SRC_MISC_ARRAY_H

@@ -27,7 +27,7 @@ typedef struct http_enc_status_t {
 
 typedef struct http_enc_impl_t {
     void* self;
-    http_enc_status_t (*read)(void* self, net_client_t* client);
-} http_encoding_t;
+    http_enc_status_t (*read)(void* self, slice_t data);
+} http_enc_impl_t;
 
 #endif //ENCODING_H

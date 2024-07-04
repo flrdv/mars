@@ -90,7 +90,7 @@ void test_partial_request(size_t step) {
     for (size_t i = 0; i < len/step+1; i++) {
         slice_t piece = slice_new((byte_t*)&simple_sample[offset], MIN(step, len-i*step));
         offset += step;
-        status = http_parse(&parser, piece.data, piece.len);
+        status = http_parse(&parser, piece.elems, piece.len);
 
         if (status.completed) break;
     }

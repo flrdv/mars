@@ -11,7 +11,7 @@
 typedef struct {
     http_status_t status;
     // TODO: add response status overriding?
-    keyval_storage_t headers;
+    keyval_t headers;
 } http_response_t;
 
 #endif //RESPONSE_H

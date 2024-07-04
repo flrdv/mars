@@ -11,7 +11,7 @@
 #include "request.h"
 #include "misc/buffer.h"
 
-typedef struct {
+typedef struct http_parser_status {
     bool completed;
     byte_t* extra;
     int extra_size;
@@ -28,7 +28,7 @@ typedef enum {
     ST_LAST_LF
 } state_t;
 
-typedef struct {
+typedef struct http_parser {
     http_request_t* request;
     buffer_t* req_line_buff;
     buffer_t* header_buff;
@@ -37,10 +37,7 @@ typedef struct {
     state_t state;
 } http_parser_t;
 
-http_parser_t http_new_parser(
-        http_request_t* req, buffer_t* req_line_buff, buffer_t* header_buff
-);
-
+http_parser_t http_new_parser(http_request_t* req, buffer_t* req_line_buff, buffer_t* header_buff);
 http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, ssize_t len);
 
 void http_parser_free(http_parser_t* self);

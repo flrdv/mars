@@ -50,8 +50,8 @@ static ssize_t find_char(const byte_t* data, const ssize_t len, const char ch) {
     return -1;
 }
 
-static inline void strip_cr(slice_t* slice) {
-    if (slice->data[slice->len-1] == '\r') {
+static void strip_cr(slice_t* slice) {
+    if (slice->elems[slice->len-1] == '\r') {
         slice->len--;
     }
 }
@@ -60,10 +60,10 @@ static uint32_t slicetou32(const slice_t slice) {
     uint32_t value = 0;
 
     for (size_t i = 0; i < slice.len; i++) {
-        if (slice.data[i] == ' ') continue;
+        if (slice.elems[i] == ' ') continue;
 
-        if (slice.data[i] >= '0' && slice.data[i] <= '9') {
-            value = value * 10 + (slice.data[i] - '0');
+        if (slice.elems[i] >= '0' && slice.elems[i] <= '9') {
+            value = value * 10 + (slice.elems[i] - '0');
             continue;
         }
 
@@ -221,7 +221,7 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const s
 
         switch (key.len) {
         case 14: // content-length
-            if (memcmpfold("content-length", (char*)key.data, 14)) {
+            if (memcmpfold("content-length", (char*)key.elems, 14)) {
                 uint32_t content_length = slicetou32(value);
                 if (content_length == UINT32_MAX) {
                     return ERROR(HTTP_STATUS_BAD_REQUEST);

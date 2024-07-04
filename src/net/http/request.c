@@ -21,43 +21,43 @@
 known_http_methods_t http_parse_method(const slice_t str) {
     switch (str.len) {
     case 3:
-        if (STR3_CMP(str.data, 'G', 'E', 'T')) {
+        if (STR3_CMP(str.elems, 'G', 'E', 'T')) {
             return GET;
         }
-        if (STR3_CMP(str.data, 'P', 'U', 'T')) {
+        if (STR3_CMP(str.elems, 'P', 'U', 'T')) {
             return PUT;
         }
 
         return UNKNOWN;
     case 4:
-        if (STR4_CMP(str.data, 'H', 'E', 'A', 'D')) {
+        if (STR4_CMP(str.elems, 'H', 'E', 'A', 'D')) {
             return HEAD;
         }
-        if (STR4_CMP(str.data, 'P', 'O', 'S', 'T')) {
+        if (STR4_CMP(str.elems, 'P', 'O', 'S', 'T')) {
             return POST;
         }
 
         return UNKNOWN;
     case 5:
-        if (STR5_CMP(str.data, 'T', 'R', 'A', 'C', 'E')) {
+        if (STR5_CMP(str.elems, 'T', 'R', 'A', 'C', 'E')) {
             return TRACE;
         }
-        if (STR5_CMP(str.data, 'P', 'A', 'T', 'C', 'H')) {
+        if (STR5_CMP(str.elems, 'P', 'A', 'T', 'C', 'H')) {
             return PATCH;
         }
 
         return UNKNOWN;
     case 6:
-        if (STR6_CMP(str.data, 'D', 'E', 'L', 'E', 'T', 'E')) {
+        if (STR6_CMP(str.elems, 'D', 'E', 'L', 'E', 'T', 'E')) {
             return DELETE;
         }
 
         return UNKNOWN;
     case 7:
-        if (STR7_CMP(str.data, 'O', 'P', 'T', 'I', 'O', 'N', 'S')) {
+        if (STR7_CMP(str.elems, 'O', 'P', 'T', 'I', 'O', 'N', 'S')) {
             return OPTIONS;
         }
-        if (STR7_CMP(str.data, 'C', 'O', 'N', 'N', 'E', 'C', 'T')) {
+        if (STR7_CMP(str.elems, 'C', 'O', 'N', 'N', 'E', 'C', 'T')) {
             return CONNECT;
         }
 
@@ -67,7 +67,7 @@ known_http_methods_t http_parse_method(const slice_t str) {
     }
 }
 
-http_request_t http_request_new(keyval_storage_t storage) {
+http_request_t http_request_new(keyval_t storage) {
     return (http_request_t) {
         .headers = storage,
     };

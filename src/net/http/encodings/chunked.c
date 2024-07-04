@@ -7,7 +7,7 @@
 #include "chunked.h"
 
 #define ADVANCE(i)    \
-    data.data += (i); \
+    data.elems += (i); \
     data.len -= (i)
 
 #define MOVE(i, lbl) \
@@ -61,13 +61,13 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
 
     st_length:
         for (size_t i = 0; i < data.len; i++) {
-            switch (data.data[i]) {
+            switch (data.elems[i]) {
             case '\r': MOVE(i+1, st_length_lf);
             case '\n': MOVE(i+1, st_length_next_state);
             default: ;
             }
 
-            const uint8_t halfbyte = HEX_DECODE_LUT[data.data[i]];
+            const uint8_t halfbyte = HEX_DECODE_LUT[data.elems[i]];
             if (!halfbyte) return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
             self->chunk_remaining = (self->chunk_remaining << 4) | (halfbyte-1);
@@ -83,7 +83,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
-        if (data.data[0] != '\n')
+        if (data.elems[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
         ADVANCE(1);
@@ -102,7 +102,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
             return HTTP_ENCODE_STATUS_PENDING(data, SLICE_NULL);
         }
 
-        slice_t extra = slice_new(&data.data[self->chunk_remaining], data.len-self->chunk_remaining);
+        slice_t extra = slice_new(&data.elems[self->chunk_remaining], data.len-self->chunk_remaining);
         data.len = self->chunk_remaining;
         self->state = CHUNKED_ST_CHUNK_FIN;
         self->chunk_remaining = 0;
@@ -113,7 +113,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
         if (data.len == 0)
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
 
-        switch (data.data[0]) {
+        switch (data.elems[0]) {
         case '\r': MOVE(1, st_chunk_lf);
         case '\n': MOVE(1, st_length);
         default: return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
@@ -126,7 +126,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
-        if (data.data[0] != '\n')
+        if (data.elems[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
         MOVE(1, st_length);
@@ -138,7 +138,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
-        switch (data.data[0]) {
+        switch (data.elems[0]) {
         case '\r': MOVE(1, st_last_chunk_lf);
         case '\n': MOVE(1, st_done);
         default: return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
@@ -152,7 +152,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
         }
 
         // TODO: support trailer
-        if (data.data[0] != '\n')
+        if (data.elems[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
         ADVANCE(1);

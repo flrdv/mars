@@ -64,10 +64,10 @@ bool feed_data(http_enc_chunked_t* reader, net_client_t* client, buffer_t* buffe
         client->preserve(client->self, status.extra);
         switch (status.status) {
         case HTTP_ENCODE_DONE:
-            TEST_ASSERT(buffer_append(buffer, status.data.data, status.data.len));
+            TEST_ASSERT(buffer_append(buffer, status.data.elems, status.data.len));
             return true;
         case HTTP_ENCODE_PENDING:
-            TEST_ASSERT(buffer_append(buffer, status.data.data, status.data.len));
+            TEST_ASSERT(buffer_append(buffer, status.data.elems, status.data.len));
             break;
         case HTTP_ENCODE_ERR_READ:     TEST_FAIL_MESSAGE("received unexpected ERR_READ");
         case HTTP_ENCODE_ERR_BAD_DATA: TEST_FAIL_MESSAGE("received unexpected ERR_BAD_DATA");
@@ -96,7 +96,7 @@ void test_chunked(void) {
     for (size_t i = 1; i <= strlen(sample); i++) {
         slice_t result = test_partial_chunked(sample, i);
         char* out; asprintf(&out, "failed on step size: %lu\n", i);
-        TEST_ASSERT_MESSAGE(memcmp("Hello, world!pavlo", result.data, result.len) == 0, out);
+        TEST_ASSERT_MESSAGE(memcmp("Hello, world!pavlo", result.elems, result.len) == 0, out);
     }
 }
 

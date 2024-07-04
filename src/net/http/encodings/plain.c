@@ -20,7 +20,7 @@ http_enc_status_t http_enc_plain_read(http_enc_plain_t* self, slice_t data) {
         return HTTP_ENCODE_STATUS_PENDING(data, SLICE_NULL);
     }
 
-    slice_t extra = slice_new(&data.data[self->content_length], data.len-self->content_length);
+    slice_t extra = slice_new(&data.elems[self->content_length], data.len-self->content_length);
     data.len = self->content_length; // truncate the source slice a bit to avoid creating a new one
     self->content_length = 0;
 
