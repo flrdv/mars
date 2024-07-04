@@ -62,8 +62,8 @@ static const http_status_t HTTP_STATUS_UPGRADE_REQUIRED                = 426; //
 static const http_status_t HTTP_STATUS_PRECONDITION_REQUIRED           = 428; // RFC 6585, 3
 static const http_status_t HTTP_STATUS_TOO_MANY_REQUESTS               = 429; // RFC 6585, 4
 static const http_status_t HTTP_STATUS_HEADER_FIELDS_TOO_LARGE         = 431; // RFC 6585, 5
-static const http_status_t HTTP_STATUS_CLOSE_CONNECTION                = 439; // internally used code
 static const http_status_t HTTP_STATUS_UNAVAILABLE_FOR_LEGAL_REASONS   = 451; // RFC 7725, 3
+static const http_status_t HTTP_STATUS_BROKEN_PIPE                     = 499; // used internally
 
 static const http_status_t HTTP_STATUS_INTERNAL_SERVER_ERROR           = 500; // RFC 9110, 15.6.1
 static const http_status_t HTTP_STATUS_NOT_IMPLEMENTED                 = 501; // RFC 9110, 15.6.2
