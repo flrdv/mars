@@ -3,7 +3,7 @@
 //
 
 #include <string.h>
-#include "src/misc/buffer.h"
+#include "lib/buffer.h"
 #include "unity.h"
 
 void setUp(void) {}
@@ -16,7 +16,7 @@ void test_buffer_no_overflow(void) {
 
     slice_t segment = buffer_segment(&buffer);
     TEST_ASSERT(segment.len == strlen("abcde"));
-    TEST_ASSERT(memcmp(segment.elems, "abcde", segment.len) == 0);
+    TEST_ASSERT(memcmp(segment.ptr, "abcde", segment.len) == 0);
     buffer_free(&buffer);
 }
 
@@ -27,7 +27,7 @@ void test_buffer_overflow(void) {
 
     slice_t segment = buffer_segment(&buffer);
     TEST_ASSERT(segment.len == strlen("abcde"));
-    TEST_ASSERT(memcmp(segment.elems, "abcde", segment.len) == 0);
+    TEST_ASSERT(memcmp(segment.ptr, "abcde", segment.len) == 0);
     buffer_free(&buffer);
 }
 

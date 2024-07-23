@@ -6,7 +6,7 @@
 #define MARS_BUFFER_H
 
 #include <stdbool.h>
-#include "types.h"
+#include "slice.h"
 
 typedef struct buffer {
     byte_t* mem;

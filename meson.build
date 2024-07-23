@@ -6,9 +6,11 @@ tests = []
 
 subdir('tests')
 subdir('tests/dummy')
-subdir('src')
-subdir('src/misc')
+subdir('src/ev')
+subdir('src/lib')
+subdir('src/net/tcp')
 subdir('src/net/http')
+subdir('src/report/providers')
 subdir('src/net/http/encodings')
 
 # Dependencies

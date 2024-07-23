@@ -6,7 +6,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "types.h"
+#include "lib/slice.h"
 
 dummy_client_t* dummy_client_new(slice_t* reads, size_t len) {
     dummy_client_t* dummy = malloc(sizeof(dummy_client_t));
@@ -23,21 +23,22 @@ dummy_client_t* dummy_client_new(slice_t* reads, size_t len) {
     return dummy;
 }
 
-net_status_t dummy_client_read(void* s) {
-    dummy_client_t* self = s;
-    if (self->preserved.len) {
-        const slice_t preserved = self->preserved;
-        self->preserved = SLICE_NULL;
-        return NET_STATUS(NET_OK, preserved);
-    }
-
-    if (self->reads_head >= self->reads_cap)
-        return NET_STATUS(NET_EOF, SLICE_NULL);
-
-    return NET_STATUS(NET_OK, self->reads[self->reads_head++]);
+static int dummy_client_read(void* s, slice_t buff) {
+    // TODO: copy data to the buff instead of returning it.
+    // dummy_client_t* self = s;
+    // if (self->preserved.len) {
+    //     const slice_t preserved = self->preserved;
+    //     self->preserved = SLICE_NULL;
+    //     return NET_STATUS(NET_OK, preserved);
+    // }
+    //
+    // if (self->reads_head >= self->reads_cap)
+    //     return NET_STATUS(NET_EOF, SLICE_NULL);
+    //
+    // return NET_STATUS(NET_OK, self->reads[self->reads_head++]);
 }
 
-int dummy_client_write(void* s, slice_t data) {
+static int dummy_client_write(void* s, slice_t data) {
     dummy_client_t* self = s;
     if (self->writes_len >= self->writes_cap) {
         self->writes_cap += 10;
@@ -47,24 +48,26 @@ int dummy_client_write(void* s, slice_t data) {
         self->writes = new_writes;
     }
 
-    self->writes[self->writes_len++] = data;
-    return NET_OK;
+    self->writes[self->writes_len++] = slice_clone(data);
+    return 0;
 }
 
-void dummy_client_preserve(void* self, slice_t data) {
+static void dummy_client_preserve(void* self, slice_t data) {
     ((dummy_client_t*)self)->preserved = data;
 }
 
-size_t dummy_client_close(void* s) {
+static int dummy_client_close(void* s) {
     // so next calls will return EOF
     dummy_client_t* self = s;
     self->reads_head = self->reads_cap;
     return 0;
 }
 
-void dummy_client_free(dummy_client_t* self) {
+void dummy_client_free(void* s) {
     // don't free reads, as it belongs to caller. In case we try, it may
-    // result in double free or corruption
+    // result in corruption, e.g. reads are stack-allocated
+    dummy_client_t* self = s;
+    for (size_t i = 0; i < self->writes_len; i++) slice_free(self->writes[i]);
     free(self->writes);
     free(self);
 }
@@ -75,6 +78,7 @@ net_client_t dummy_client_as_net(dummy_client_t* self) {
         .read = dummy_client_read,
         .write = dummy_client_write,
         .preserve = dummy_client_preserve,
-        .close = dummy_client_close
+        .close = dummy_client_close,
+        .free = dummy_client_free
     };
 }

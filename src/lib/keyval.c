@@ -5,10 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+
+#include "slice.h"
 #include "keyval.h"
 #include "memcmpfold.h"
 
-keyval_t new_keyval(const size_t prealloc, const size_t step) {
+keyval_t keyval_new(const size_t prealloc, const size_t step) {
     return (keyval_t) {
         .pairs = malloc(prealloc * sizeof(keyval_pair_t)),
         .len = 0,
@@ -17,7 +19,7 @@ keyval_t new_keyval(const size_t prealloc, const size_t step) {
     };
 }
 
-static void keyval_grow_(keyval_t* self) {
+void keyval_grow_(keyval_t* self) {
     const size_t new_cap = self->cap + self->step;
     keyval_pair_t* new_mem = malloc(new_cap * sizeof(keyval_pair_t));
     memcpy(new_mem, self->pairs, self->len*sizeof(keyval_pair_t));
@@ -32,11 +34,11 @@ void keyval_append(keyval_t* self, const slice_t key, const slice_t value) {
     self->pairs[self->len++] = (keyval_pair_t) { key, value };
 }
 
-static bool slice_cmp_fold(const slice_t s1, const slice_t s2) {
+bool slice_cmp_fold(const slice_t s1, const slice_t s2) {
     if (s1.len != s2.len)
         return false;
 
-    return memcmpfold((char*)s1.elems, (char*)s2.elems, s1.len);
+    return memcmpfold((char*)s1.ptr, (char*)s2.ptr, s1.len);
 }
 
 /*

@@ -4,12 +4,15 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include "types.h"
-#include "misc/buffer.h"
+
+#include "unity.h"
+
+#include "lib/slice.h"
+#include "lib/buffer.h"
 #include "dummy/client.h"
 #include "net/http/encodings/plain.h"
 #include "net/http/encodings/chunked.h"
-#include "unity.h"
+#include "net/http/encodings/encoding.h"
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -58,16 +61,16 @@ dummy_client_t* mock_client(char* str, size_t step) {
 bool feed_data(http_enc_chunked_t* reader, net_client_t* client, buffer_t* buffer) {
     for (;;) {
         net_status_t read = client->read(client->self);
-        TEST_ASSERT(read.errno == NET_OK);
+        TEST_ASSERT(read.error == NET_OK);
 
         http_enc_status_t status = http_enc_chunked_read(reader, read.data);
         client->preserve(client->self, status.extra);
         switch (status.status) {
         case HTTP_ENCODE_DONE:
-            TEST_ASSERT(buffer_append(buffer, status.data.elems, status.data.len));
+            TEST_ASSERT(buffer_append(buffer, status.data.ptr, status.data.len));
             return true;
         case HTTP_ENCODE_PENDING:
-            TEST_ASSERT(buffer_append(buffer, status.data.elems, status.data.len));
+            TEST_ASSERT(buffer_append(buffer, status.data.ptr, status.data.len));
             break;
         case HTTP_ENCODE_ERR_READ:     TEST_FAIL_MESSAGE("received unexpected ERR_READ");
         case HTTP_ENCODE_ERR_BAD_DATA: TEST_FAIL_MESSAGE("received unexpected ERR_BAD_DATA");
@@ -96,7 +99,7 @@ void test_chunked(void) {
     for (size_t i = 1; i <= strlen(sample); i++) {
         slice_t result = test_partial_chunked(sample, i);
         char* out; asprintf(&out, "failed on step size: %lu\n", i);
-        TEST_ASSERT_MESSAGE(memcmp("Hello, world!pavlo", result.elems, result.len) == 0, out);
+        TEST_ASSERT_MESSAGE(memcmp("Hello, world!pavlo", result.ptr, result.len) == 0, out);
     }
 }
 

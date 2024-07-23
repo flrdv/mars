@@ -6,7 +6,6 @@
 #define PLAIN_H
 
 #include <stddef.h>
-#include "net/client.h"
 #include "encoding.h"
 
 typedef struct http_enc_plain_t {

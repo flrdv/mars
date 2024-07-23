@@ -7,29 +7,25 @@
 //
 
 #include <string.h>
-#include "types.h"
+#include "lib/slice.h"
 #include "net/client.h"
 #include "dummy/client.h"
 #include "unity.h"
-
-slice_t strslice(char* str) {
-    return slice_new((byte_t*)str, strlen(str));
-}
 
 void setUp(void) {}
 void tearDown(void) {}
 
 void test_reads(void) {
     slice_t reads[4] = {
-        strslice("Hel"), strslice("lo,"), strslice(" World"), strslice("!")
+        slice_str("Hel"), slice_str("lo,"), slice_str(" World"), slice_str("!")
     };
     dummy_client_t* dummy = dummy_client_new(reads, 4);
     const net_client_t client = dummy_client_as_net(dummy);
 
 #define TEST_READ(str)               \
-    TEST_ASSERT(status.errno == 0);  \
+    TEST_ASSERT(status.error == 0);  \
     TEST_ASSERT(slice_cmp(           \
-        status.data, strslice(str)   \
+        status.data, slice_str(str)   \
     ));
 
     net_status_t status = client.read(client.self);
@@ -41,7 +37,7 @@ void test_reads(void) {
     status = client.read(client.self);
     TEST_READ("!")
     status = client.read(client.self);
-    TEST_ASSERT(status.errno == NET_EOF);
+    TEST_ASSERT(status.error == NET_EOF);
     dummy_client_free(dummy);
 }
 

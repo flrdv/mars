@@ -24,6 +24,7 @@ typedef struct http_enc_chunked_t {
 } http_enc_chunked_t;
 
 http_enc_chunked_t http_enc_chunked_new(void);
-http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data);
+http_enc_status_t http_enc_chunked_read(void* self, slice_t data);
+http_enc_impl_t http_enc_chunked_impl(void);
 
 #endif //CHUNKED_H

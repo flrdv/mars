@@ -5,7 +5,7 @@
 #ifndef ENCODING_H
 #define ENCODING_H
 
-#include "types.h"
+#include "lib/slice.h"
 
 #define HTTP_ENCODE_PENDING 0
 #define HTTP_ENCODE_DONE 1
@@ -28,6 +28,7 @@ typedef struct http_enc_status_t {
 typedef struct http_enc_impl_t {
     void* self;
     http_enc_status_t (*read)(void* self, slice_t data);
+    void (*reset)(void* self);
 } http_enc_impl_t;
 
 #endif //ENCODING_H

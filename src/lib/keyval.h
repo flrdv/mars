@@ -2,11 +2,11 @@
 // Created by floordiv on 22-Jun-24.
 //
 
-#ifndef MARS_SRC_MISC_KEYVAL_H
-#define MARS_SRC_MISC_KEYVAL_H
+#ifndef MARS_SRC_LIB_KEYVAL_H
+#define MARS_SRC_LIB_KEYVAL_H
 
 #include <sys/types.h>
-#include "types.h"
+#include "lib/slice.h"
 
 typedef struct {
     slice_t key;
@@ -31,7 +31,7 @@ typedef struct {
     size_t index;
 } keyval_iterator_t;
 
-keyval_t          new_keyval(size_t prealloc, size_t step);
+keyval_t          keyval_new(size_t prealloc, size_t step);
 void              keyval_append(keyval_t* self, slice_t key, slice_t value);
 keyval_pair_t*    keyval_get(const keyval_t* self, slice_t key);
 keyval_iterator_t keyval_values(keyval_t* self, slice_t key);
@@ -40,4 +40,4 @@ size_t            keyval_len(const keyval_t* self);
 void              keyval_clear(keyval_t* self);
 void              keyval_free(const keyval_t* self);
 
-#endif //MARS_SRC_MISC_KEYVAL_H
+#endif //MARS_SRC_LIB_KEYVAL_H

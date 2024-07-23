@@ -7,7 +7,7 @@
 #include "chunked.h"
 
 #define ADVANCE(i)    \
-    data.elems += (i); \
+    data.ptr += (i); \
     data.len -= (i)
 
 #define MOVE(i, lbl) \
@@ -48,7 +48,9 @@ static const byte_t HEX_DECODE_LUT[256] = {
     ['F'] = 0xF + 1,
 };
 
-http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) {
+http_enc_status_t http_enc_chunked_read(void* s, slice_t data) {
+    http_enc_chunked_t* self = s;
+
     switch (self->state) {
     case CHUNKED_ST_LENGTH:        goto st_length;
     case CHUNKED_ST_LENGTH_LF:     goto st_length_lf;
@@ -61,13 +63,13 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
 
     st_length:
         for (size_t i = 0; i < data.len; i++) {
-            switch (data.elems[i]) {
+            switch (data.ptr[i]) {
             case '\r': MOVE(i+1, st_length_lf);
             case '\n': MOVE(i+1, st_length_next_state);
             default: ;
             }
 
-            const uint8_t halfbyte = HEX_DECODE_LUT[data.elems[i]];
+            const uint8_t halfbyte = HEX_DECODE_LUT[data.ptr[i]];
             if (!halfbyte) return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
             self->chunk_remaining = (self->chunk_remaining << 4) | (halfbyte-1);
@@ -83,7 +85,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
-        if (data.elems[0] != '\n')
+        if (data.ptr[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
         ADVANCE(1);
@@ -102,7 +104,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
             return HTTP_ENCODE_STATUS_PENDING(data, SLICE_NULL);
         }
 
-        slice_t extra = slice_new(&data.elems[self->chunk_remaining], data.len-self->chunk_remaining);
+        slice_t extra = slice_new(&data.ptr[self->chunk_remaining], data.len-self->chunk_remaining);
         data.len = self->chunk_remaining;
         self->state = CHUNKED_ST_CHUNK_FIN;
         self->chunk_remaining = 0;
@@ -113,7 +115,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
         if (data.len == 0)
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
 
-        switch (data.elems[0]) {
+        switch (data.ptr[0]) {
         case '\r': MOVE(1, st_chunk_lf);
         case '\n': MOVE(1, st_length);
         default: return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
@@ -126,7 +128,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
-        if (data.elems[0] != '\n')
+        if (data.ptr[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
         MOVE(1, st_length);
@@ -138,7 +140,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
             return HTTP_ENCODE_STATUS_PENDING(SLICE_NULL, SLICE_NULL);
         }
 
-        switch (data.elems[0]) {
+        switch (data.ptr[0]) {
         case '\r': MOVE(1, st_last_chunk_lf);
         case '\n': MOVE(1, st_done);
         default: return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
@@ -152,7 +154,7 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
         }
 
         // TODO: support trailer
-        if (data.elems[0] != '\n')
+        if (data.ptr[0] != '\n')
             return HTTP_ENCODE_STATUS_ERR(HTTP_ENCODE_ERR_BAD_DATA);
 
         ADVANCE(1);
@@ -160,4 +162,19 @@ http_enc_status_t http_enc_chunked_read(http_enc_chunked_t* self, slice_t data) 
 
     st_done:
         return HTTP_ENCODE_STATUS_DONE(SLICE_NULL, data);
+}
+
+void http_enc_chunked_reset(void* s) {
+    http_enc_chunked_t* self = s;
+    *self = http_enc_chunked_new();
+}
+
+http_enc_impl_t http_enc_chunked_impl(void) {
+    http_enc_chunked_t* chunked = malloc(sizeof(http_enc_chunked_t));
+    *chunked = http_enc_chunked_new();
+    return (http_enc_impl_t) {
+        .self = chunked,
+        .read = http_enc_chunked_read,
+        .reset = http_enc_chunked_reset
+    };
 }

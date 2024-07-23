@@ -3,57 +3,53 @@
 //
 
 #include <string.h>
-#include "misc/keyval.h"
-#include "types.h"
+#include "lib/keyval.h"
+#include "lib/slice.h"
 #include "unity.h"
 
 void setUp(void) {}
 void tearDown(void) {}
 
-static slice_t strslice(const char* data) {
-    return slice_new((byte_t*)data, strlen(data));
-}
-
 void test_prealloc_get(void) {
     const int prealloc = 5, step = 10;
-    keyval_t storage = new_keyval(prealloc, step);
-    keyval_append(&storage, strslice("HELLO"), strslice("world"));
-    keyval_append(&storage, strslice("abba"), strslice("baab"));
+    keyval_t storage = keyval_new(prealloc, step);
+    keyval_append(&storage, slice_str("HELLO"), slice_str("world"));
+    keyval_append(&storage, slice_str("abba"), slice_str("baab"));
     TEST_ASSERT(slice_cmp(
-            strslice("world"),
-            keyval_get(&storage, strslice("hello"))->value)
+            slice_str("world"),
+            keyval_get(&storage, slice_str("hello"))->value)
     );
     keyval_free(&storage);
 }
 
 void test_grow(void) {
     const int prealloc = 2, step = 10;
-    keyval_t storage = new_keyval(prealloc, step);
-    keyval_append(&storage, strslice("HELLO"), strslice("world"));
-    keyval_append(&storage, strslice("abba"), strslice("baab"));
-    keyval_append(&storage, strslice("lol"), strslice("rofl"));
-    const keyval_pair_t* value = keyval_get(&storage, strslice("lol"));
+    keyval_t storage = keyval_new(prealloc, step);
+    keyval_append(&storage, slice_str("HELLO"), slice_str("world"));
+    keyval_append(&storage, slice_str("abba"), slice_str("baab"));
+    keyval_append(&storage, slice_str("lol"), slice_str("rofl"));
+    const keyval_pair_t* value = keyval_get(&storage, slice_str("lol"));
     TEST_ASSERT(value != NULL);
     TEST_ASSERT(slice_cmp(
-            strslice("rofl"),
+            slice_str("rofl"),
             value->value)
     );
     keyval_clear(&storage);
-    TEST_ASSERT(keyval_get(&storage, strslice("lol")) == NULL);
+    TEST_ASSERT(keyval_get(&storage, slice_str("lol")) == NULL);
     keyval_free(&storage);
 }
 
 void test_values_iter(void) {
     const int prealloc = 5, step = 10;
-    keyval_t storage = new_keyval(prealloc, step);
-    keyval_append(&storage, strslice("HELLO"), strslice("world"));
-    keyval_append(&storage, strslice("lol"), strslice("rofl"));
-    keyval_append(&storage, strslice("hello"), strslice("WORLD"));
-    keyval_append(&storage, strslice("heLLo"), strslice("woRLd"));
-    keyval_iterator_t values = keyval_values(&storage, strslice("Hello"));
-    TEST_ASSERT(slice_cmp(keyval_values_next(&values)->value, strslice("world")));
-    TEST_ASSERT(slice_cmp(keyval_values_next(&values)->value, strslice("WORLD")));
-    TEST_ASSERT(slice_cmp(keyval_values_next(&values)->value, strslice("woRLd")));
+    keyval_t storage = keyval_new(prealloc, step);
+    keyval_append(&storage, slice_str("HELLO"), slice_str("world"));
+    keyval_append(&storage, slice_str("lol"), slice_str("rofl"));
+    keyval_append(&storage, slice_str("hello"), slice_str("WORLD"));
+    keyval_append(&storage, slice_str("heLLo"), slice_str("woRLd"));
+    keyval_iterator_t values = keyval_values(&storage, slice_str("Hello"));
+    TEST_ASSERT(slice_cmp(keyval_values_next(&values)->value, slice_str("world")));
+    TEST_ASSERT(slice_cmp(keyval_values_next(&values)->value, slice_str("WORLD")));
+    TEST_ASSERT(slice_cmp(keyval_values_next(&values)->value, slice_str("woRLd")));
     TEST_ASSERT(keyval_values_next(&values) == NULL);
     keyval_free(&storage);
 }

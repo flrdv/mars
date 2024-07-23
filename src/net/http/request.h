@@ -2,11 +2,11 @@
 // Created by pavlo on 19.06.24.
 //
 
-#ifndef MARS_REQUEST_H
-#define MARS_REQUEST_H
+#ifndef MARS_HTTP_REQUEST_H
+#define MARS_HTTP_REQUEST_H
 
-#include "types.h"
-#include "misc/keyval.h"
+#include "lib/slice.h"
+#include "lib/keyval.h"
 
 typedef enum {
     UNKNOWN,
@@ -38,4 +38,4 @@ http_request_t http_request_new(keyval_t storage);
 void http_request_free(http_request_t* request);
 known_http_methods_t http_parse_method(slice_t str);
 
-#endif //MARS_REQUEST_H
+#endif //MARS_HTTP_REQUEST_H

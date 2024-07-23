@@ -3,7 +3,9 @@
 //
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+
 #include "buffer.h"
 
 #define TRY_GROW(buff, size) if (!buffer_grow(buff, size)) { return false; }
@@ -23,7 +25,8 @@ void buffer_free(buffer_t* buff) {
 }
 
 static bool buffer_grow(buffer_t* buff, size_t increment) {
-    size_t new_cap = buff->cap + increment; // TODO: make some smarter algorithm
+    // TODO: make some smarter algorithm. Or just use the one from list.h
+    size_t new_cap = buff->cap + increment;
     if (new_cap > buff->max_cap) return false;
 
     byte_t* new_mem = malloc(new_cap);

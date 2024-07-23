@@ -5,7 +5,7 @@
 #ifndef MARS_DUMMY_CLIENT_H
 #define MARS_DUMMY_CLIENT_H
 
-#include "types.h"
+#include "lib/slice.h"
 #include "net/client.h"
 
 typedef struct dummy_client_t {
@@ -19,7 +19,6 @@ typedef struct dummy_client_t {
 } dummy_client_t;
 
 dummy_client_t* dummy_client_new(slice_t* reads, size_t len);
-net_client_t dummy_client_as_net(dummy_client_t*);
-void dummy_client_free(dummy_client_t*);
+net_client_t    dummy_client_as_net(dummy_client_t*);
 
 #endif //MARS_DUMMY_CLIENT_H

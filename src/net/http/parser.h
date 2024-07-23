@@ -2,14 +2,14 @@
 // Created by pavlo on 12-Jun-24.
 //
 
-#ifndef MARS_HTTP_PARSER_H
-#define MARS_HTTP_PARSER_H
+#ifndef MARS_SRC_NET_HTTP_PARSER_H
+#define MARS_SRC_NET_HTTP_PARSER_H
 
 #include <stdbool.h>
-#include "types.h"
 #include "status.h"
 #include "request.h"
-#include "misc/buffer.h"
+#include "lib/slice.h"
+#include "lib/buffer.h"
 
 typedef struct http_parser_status {
     bool completed;
@@ -42,6 +42,6 @@ http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, ssize_t
 
 void http_parser_free(http_parser_t* self);
 
-#endif //MARS_HTTP_PARSER_H
+#endif //MARS_SRC_NET_HTTP_PARSER_H
 
 

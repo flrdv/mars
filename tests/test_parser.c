@@ -4,30 +4,27 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "misc/array.h"
-#include "types.h"
-#include "misc/keyval.h"
-#include "net/http/parser.h"
+
 #include "unity.h"
+
+#include "lib/slice.h"
+#include "lib/buffer.h"
+#include "net/http/parser.h"
 
 void setUp(void) {}
 void tearDown(void) {}
 
-slice_t strslice(char* str) {
-    return slice_new((byte_t*)str, strlen(str));
-}
-
-static buffer_t* init_buffer(int prealloc, int max_size) {
+buffer_t* init_buffer(int prealloc, int max_size) {
     buffer_t* buff = malloc(sizeof(buffer_t));
     *buff = buffer_new(prealloc, max_size);
 
     return buff;
 }
 
-static http_parser_t init_parser(void) {
+http_parser_t init_parser(void) {
     const int prealloc = 5, step = 5;
     http_request_t* req = malloc(sizeof(http_request_t));
-    *req = http_request_new(new_keyval(prealloc, step));
+    *req = http_request_new(keyval_new(prealloc, step));
     buffer_t* req_line_buff = init_buffer(256, 512);
     buffer_t* headers_buff = init_buffer(512, 2048);
 
@@ -37,14 +34,14 @@ static http_parser_t init_parser(void) {
 #define METHOD_ENUM(M) \
     parser.request->method.method == M
 #define METHOD_REPR(M) \
-    slice_cmp(parser.request->method.repr, strslice(M))
+    slice_cmp(parser.request->method.repr, slice_str(M))
 #define PATH(P) \
-    slice_cmp(parser.request->path, strslice(P))
+    slice_cmp(parser.request->path, slice_str(P))
 #define PROTOCOL(P) \
-    slice_cmp(parser.request->protocol, strslice(P))
+    slice_cmp(parser.request->protocol, slice_str(P))
 #define HEADER(K, V) \
     slice_cmp( \
-        keyval_get(&parser.request->headers, strslice(K))->value, strslice(V) \
+        keyval_get(&parser.request->headers, slice_str(K))->value, slice_str(V) \
     )
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -60,7 +57,7 @@ slice_array_t divide(char* str, size_t step) {
         parts[i] = slice_new((byte_t*)&str[i*step], MIN(step, len-(i*step)));
     }
 
-    return (slice_array_t) { parts, parts_count };
+    return (slice_array_t) { parts_count, parts };
 }
 
 void test_no_headers(void) {
@@ -90,7 +87,7 @@ void test_partial_request(size_t step) {
     for (size_t i = 0; i < len/step+1; i++) {
         slice_t piece = slice_new((byte_t*)&simple_sample[offset], MIN(step, len-i*step));
         offset += step;
-        status = http_parse(&parser, piece.elems, piece.len);
+        status = http_parse(&parser, piece.ptr, piece.len);
 
         if (status.completed) break;
     }
