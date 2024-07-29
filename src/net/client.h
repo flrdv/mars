@@ -15,44 +15,31 @@
 #define NET_EAGAIN -1
 #define NET_EPIPE -2
 
+typedef struct sockaddr_in sockaddr_t;
+
 typedef struct net_client_t {
-    void* self;
-    int                (*read)(void*, slice_t);
-    int                (*write)(void*, slice_t);
-    void               (*preserve)(void*, slice_t);
-    struct sockaddr_in (*remote)(void*);
-    int                (*close)(void*);
-    void               (*free)(void*);
+    int        (*read)(void*, slice_t);
+    int        (*write)(void*, slice_t);
+    void       (*preserve)(void*, slice_t);
+    int        (*set_nonblocking)(void*);
+    sockaddr_t (*remote)(void*);
+    int        (*close)(void*);
+    void*      env;
 } net_client_t;
 
-/// Shortcut for `client->read(client->self)`.
-static int net_read(net_client_t* client, slice_t buff) {
-    return client->read(client->self, buff);
-}
+/// Shortcut for `self->read(self->env)`.
+int net_read(const net_client_t* self, slice_t buff);
 
-/// Shortcut for `client->write(client->self, data)`.
-static ssize_t net_write(net_client_t* client, slice_t data) {
-    return client->write(client->self, data);
-}
+/// Shortcut for `self->write(self->env, data)`.
+int net_write(const net_client_t* self, slice_t data);
 
-/// Shortcut for `client->preserve(client->self, data)`.
-static void net_preserve(net_client_t* client, slice_t data) {
-    client->preserve(client->self, data);
-}
+/// Shortcut for `self->preserve(self->env, data)`.
+void net_preserve(const net_client_t* self, slice_t data);
 
-/// Shortcut for `client->remote(client->self)`.
-static struct sockaddr_in net_remote(net_client_t* client) {
-    return client->remote(client->self);
-}
+/// Shortcut for `self->remote(self->env)`.
+sockaddr_t net_remote(const net_client_t* self);
 
-/// Shortcut for `client->close(client->self)`.
-static ssize_t net_close(net_client_t* client) {
-    return client->close(client->self);
-}
-
-/// Shortcut for `client->free(client->self)`.
-static void net_free(net_client_t* client) {
-    return client->free(client->self);
-}
+/// Shortcut for `self->close(self->env)`.
+int net_close(const net_client_t* self);
 
 #endif //MARS_NET_CLIENT_H

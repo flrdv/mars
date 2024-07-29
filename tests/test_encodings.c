@@ -60,8 +60,8 @@ dummy_client_t* mock_client(char* str, size_t step) {
 
 bool feed_data(http_enc_chunked_t* reader, net_client_t* client, buffer_t* buffer) {
     for (;;) {
-        net_status_t read = client->read(client->self);
-        TEST_ASSERT(read.error == NET_OK);
+        int n = net_read(client);
+        TEST_ASSERT();
 
         http_enc_status_t status = http_enc_chunked_read(reader, read.data);
         client->preserve(client->self, status.extra);
@@ -115,6 +115,7 @@ void test_chunked_extra(void) {
     buffer_free(&buff);
     dummy_client_free(dummy);
 }
+
 
 int main(void) {
     UNITY_BEGIN();

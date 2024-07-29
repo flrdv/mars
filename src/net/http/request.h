@@ -8,6 +8,8 @@
 #include "lib/slice.h"
 #include "lib/keyval.h"
 
+#include <stdint.h>
+
 typedef enum {
     UNKNOWN,
     GET,

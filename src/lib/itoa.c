@@ -4,6 +4,8 @@
 
 #include "itoa.h"
 
+#include <stddef.h>
+
 static void reverse(byte_t* src, size_t len) {
     // don't care about bswap, as usually strings are short enough
     for (size_t i = 0; i < len/2; i++) {

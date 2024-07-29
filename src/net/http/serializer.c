@@ -51,7 +51,7 @@ ssize_t http_serializer_write(http_serializer_t* self, http_request_t* request, 
 }
 
 static ssize_t flush_buffer(http_serializer_t* self) {
-    ssize_t result = self->client->write(self->client->self, slice_new(self->buff.mem, self->buff.len));
+    ssize_t result = self->client->write(self->client->env, slice_new(self->buff.mem, self->buff.len));
     self->buff.len = 0;
     return result;
 }

@@ -47,6 +47,9 @@ slice_t slice_clone(slice_t self) {
     return slice_new(clone, self.len);
 }
 
+/// Copies content from first slice to second. If destination cannot hold
+/// as many bytes as source has, only first n bytes will be copied, where
+/// n is length of the destination.
 size_t slice_copyto(slice_t from, slice_t to) {
     size_t minlen = from.len > to.len ? to.len : from.len;
     memcpy(to.ptr, from.ptr, minlen);
@@ -86,7 +89,7 @@ void slice_print_escaped(slice_t self) {
         printf("\\%s", buff);
     }
 
-    puts("\"\n");
+    puts("\"");
 }
 
 void slice_free(slice_t self) {

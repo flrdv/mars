@@ -20,7 +20,7 @@
     (http_enc_status_t) { .status = err, .data = SLICE_NULL, .extra = SLICE_NULL }
 
 typedef struct http_enc_status_t {
-    uint8_t status;
+    int status;
     slice_t data;
     slice_t extra;
 } http_enc_status_t;

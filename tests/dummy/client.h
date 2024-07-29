@@ -8,7 +8,7 @@
 #include "lib/slice.h"
 #include "net/client.h"
 
-typedef struct dummy_client_t {
+typedef struct {
     slice_t* reads;
     size_t reads_cap;
     size_t reads_head;

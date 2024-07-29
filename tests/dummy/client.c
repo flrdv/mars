@@ -23,21 +23,6 @@ dummy_client_t* dummy_client_new(slice_t* reads, size_t len) {
     return dummy;
 }
 
-static int dummy_client_read(void* s, slice_t buff) {
-    // TODO: copy data to the buff instead of returning it.
-    // dummy_client_t* self = s;
-    // if (self->preserved.len) {
-    //     const slice_t preserved = self->preserved;
-    //     self->preserved = SLICE_NULL;
-    //     return NET_STATUS(NET_OK, preserved);
-    // }
-    //
-    // if (self->reads_head >= self->reads_cap)
-    //     return NET_STATUS(NET_EOF, SLICE_NULL);
-    //
-    // return NET_STATUS(NET_OK, self->reads[self->reads_head++]);
-}
-
 static int dummy_client_write(void* s, slice_t data) {
     dummy_client_t* self = s;
     if (self->writes_len >= self->writes_cap) {
@@ -56,6 +41,26 @@ static void dummy_client_preserve(void* self, slice_t data) {
     ((dummy_client_t*)self)->preserved = data;
 }
 
+static int dummy_client_read(void* s, slice_t buff) {
+    dummy_client_t* self = s;
+    if (self->preserved.len) {
+        size_t n = slice_copyto(self->preserved, buff);
+        self->preserved = slice_offset(self->preserved, n);
+
+        return n;
+    }
+
+    if (self->reads_head >= self->reads_cap)
+        return NET_EOF;
+
+    slice_t chunk = self->reads[self->reads_head++];
+    size_t n = slice_copyto(chunk, buff);
+    if (n < chunk.len)
+        dummy_client_preserve(s, slice_offset(chunk, n));
+
+    return n;
+}
+
 static int dummy_client_close(void* s) {
     // so next calls will return EOF
     dummy_client_t* self = s;
@@ -67,18 +72,22 @@ void dummy_client_free(void* s) {
     // don't free reads, as it belongs to caller. In case we try, it may
     // result in corruption, e.g. reads are stack-allocated
     dummy_client_t* self = s;
-    for (size_t i = 0; i < self->writes_len; i++) slice_free(self->writes[i]);
+
+    for (size_t i = 0; i < self->writes_len; i++)
+        slice_free(self->writes[i]);
+
     free(self->writes);
+    // free self, as constructor always heap-allocates it, and event loop
+    // has no direct access to dummy by itself.
     free(self);
 }
 
 net_client_t dummy_client_as_net(dummy_client_t* self) {
     return (net_client_t) {
-        .self = self,
+        .env = self,
         .read = dummy_client_read,
         .write = dummy_client_write,
         .preserve = dummy_client_preserve,
-        .close = dummy_client_close,
-        .free = dummy_client_free
+        .close = dummy_client_close
     };
 }

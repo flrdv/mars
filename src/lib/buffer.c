@@ -10,7 +10,7 @@
 
 #define TRY_GROW(buff, size) if (!buffer_grow(buff, size)) { return false; }
 
-buffer_t buffer_new(uint32_t prealloc, uint32_t max_cap) {
+buffer_t buffer_new(size_t prealloc, size_t max_cap) {
     return (buffer_t) {
         .mem = malloc(prealloc),
         .offset = 0,

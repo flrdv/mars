@@ -11,11 +11,11 @@
 
 typedef struct {
     int fd;
-    struct sockaddr_in remote;
+    sockaddr_t remote;
     slice_t preserved;
 } tcp_client_t;
 
-tcp_client_t* tcp_client_new(int fd, struct sockaddr_in remote);
-net_client_t  tcp_client_as_net(tcp_client_t* self);
+tcp_client_t tcp_client_new(int fd, struct sockaddr_in remote);
+net_client_t tcp_client_as_net(tcp_client_t* self);
 
 #endif //MARS_SRC_NET_TCP_CLIENT_H

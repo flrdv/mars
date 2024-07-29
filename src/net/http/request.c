@@ -4,6 +4,8 @@
 
 #include "request.h"
 
+#include <stdint.h>
+
 #define STR3_CMP(m, c0, c1, c2) \
     ((*(uint32_t*)m) & 0x00ffffff) == ((c2 << 16) | (c1 << 8) | (c0))
 #define STR4_CMP(m, c0, c1, c2, c3) \

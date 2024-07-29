@@ -7,6 +7,6 @@
 
 #include "report/report.h"
 
-report_provider_t report_filewriter_new(FILE* fd);
+reporter_t report_filewriter_new(FILE* fd);
 
 #endif //MARS_SRC_REPORT_PROVIDERS_FILEWRITER_H

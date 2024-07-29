@@ -5,13 +5,11 @@
 #ifndef MARS_TYPES_H
 #define MARS_TYPES_H
 
-#include <inttypes.h>
 #include <stdbool.h>
 #include <sys/types.h>
 
-#include "lib/array.h"
-
-typedef uint8_t byte_t;
+#include "byte.h"
+#include "array.h"
 
 typedef ARRAY(byte_t) slice_t;
 

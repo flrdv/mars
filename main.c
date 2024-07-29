@@ -5,55 +5,58 @@
 #include "lib/list.h"
 #include "lib/slice.h"
 #include "ev/epoll.h"
-#include "ev/evloop.h"
+#include "ev/ev.h"
 #include "net/client.h"
 
 typedef struct {
     list_t read;
 } async_env_t;
 
-ev_read_result_t async_read(void* env, net_client_t* client, slice_t data) {
-    printf("ASYNC_READ\n");
+ev_result_t async_read(void* env, net_client_t* client, slice_t data) {
     async_env_t* self = env;
-    if (!list_append_many(&self->read, data.ptr, data.len)) {
-        printf("async_read: error: cannot append more data!");
-        return EV_READ_RESULT(CORO_ERROR, 0);
-    }
 
     for (size_t i = 0; i < data.len; i++) {
         if (data.ptr[i] == 0) {
+            list_append(&self->read, data.ptr, i+1);
             printf("async_read: message: %s\n", (char*)self->read.ptr);
+            list_pop(&self->read);
 
-            return EV_READ_RESULT(CORO_DONE, i);
+            return EV_RESULT(EV_WRITE, i+1);
         }
     }
 
-    return EV_READ_RESULT(CORO_CONTINUE, 0);
+    list_append(&self->read, data.ptr, data.len);
+
+    return EV_RESULT(EV_READ, data.len);
 }
 
-ev_write_result_t async_write(void* env, net_client_t* client, slice_t buff) {
-    printf("ASYNC_WRITE\n");
+ev_result_t async_write(void* env, net_client_t* client, slice_t buff) {
+    printf("async_write\n");
     async_env_t* self = env;
-    size_t n = slice_copyto(slice_new(self->read.ptr, self->read.len), buff);
-    if (n == self->read.len) {
-        return EV_WRITE_RESULT(CORO_DONE, n);
-    }
+    size_t datalen = self->read.len;
+    memcpy(buff.ptr, self->read.ptr, datalen);
+    list_clear(&self->read);
 
-    return EV_WRITE_RESULT(CORO_CONTINUE, n);
+    return EV_RESULT(EV_READ, datalen);
 }
 
-ev_task_t async_task_spawner(net_client_t client) {
-    async_env_t* env = malloc(sizeof(async_env_t));
+void async_free(void* env) {
+    async_env_t* self = env;
+    list_free(&self->read);
+    free(env);
+}
+
+ev_coroutine_t async_task_spawner(net_client_t client) {
+    async_env_t* env = malloc(sizeof(async_env_t)); //NOLINT
     *env = (async_env_t) {
         .read = list_new(sizeof(byte_t))
     };
 
-    return (ev_task_t) {
-        .state = READ,
-        .client = client,
-        .env = env,
+    return (ev_coroutine_t) {
         .read = async_read,
-        .write = async_write
+        .write = async_write,
+        .free = async_free,
+        .env = env
     };
 }
 
@@ -73,7 +76,7 @@ int main(void) {
     addr.sin_port = htons(9090);
 
     if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-        printf("main: bind socket: failed idk how\n");
+        printf("main: bind socket: TIME_WAIT\n");
         return EXIT_FAILURE;
     }
 

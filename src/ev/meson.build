@@ -1,4 +1,4 @@
 sources += files(
+    'ev.c',
     'epoll.c',
-    'evloop.c',
 )

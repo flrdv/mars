@@ -7,28 +7,23 @@
 #include "lib/memcmpfold.h"
 
 #define BUFFER_APPEND(buff, data, len, err) if (!buffer_append(buff, data, len)) { return ERROR(err); }
-#define ADVANCE(n) \
-    data = data+n; \
-    remains -= n
 #define ERROR(err) (http_parser_status_t) { \
     .completed = false,                     \
-    .extra_size = 0,                        \
+    .extra = 0,                             \
     .error = err                            \
 }
 #define PENDING (http_parser_status_t) { \
     .completed = false,                  \
-    .extra_size = 0,                     \
+    .extra = 0,                          \
     .error = 0                           \
 }
-#define DONE(extra) (http_parser_status_t) { \
-    .completed = true,                       \
-    .extra_size = extra,                     \
-    .error = 0                               \
+#define DONE(ex) (http_parser_status_t) { \
+    .completed = true,                    \
+    .extra = ex,                          \
+    .error = 0                            \
 }
 
-http_parser_t http_new_parser(
-        http_request_t* req, buffer_t* req_line_buff, buffer_t* header_buff
-) {
+http_parser_t http_parser_new(http_request_t* req, buffer_t* req_line_buff, buffer_t* header_buff) {
     return (http_parser_t) {
         .request = req,
         .req_line_buff = req_line_buff,
@@ -51,9 +46,8 @@ static ssize_t find_char(const byte_t* data, const ssize_t len, const char ch) {
 }
 
 static void strip_cr(slice_t* slice) {
-    if (slice->ptr[slice->len-1] == '\r') {
+    if (slice->ptr[slice->len-1] == '\r')
         slice->len--;
-    }
 }
 
 static uint32_t slicetou32(const slice_t slice) {
@@ -72,6 +66,12 @@ static uint32_t slicetou32(const slice_t slice) {
 }
 
 http_parser_status_t http_parse(http_parser_t* self, const byte_t* data, const ssize_t len) {
+#define ADVANCE(n)     \
+    do {               \
+        data = data+n; \
+        remains -= n;  \
+    } while (0)
+
     ssize_t remains = len;
 
     switch (self->state) {

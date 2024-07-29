@@ -10,9 +10,9 @@
 
 typedef uint8_t http_version_t;
 
-static const http_version_t HTTP_VER_UNSUPPORTED = 0;
-static const http_version_t HTTP_VER_10          = 1;
-static const http_version_t HTTP_VER_11          = 2;
+#define HTTP_VER_UNSUPPORTED 0
+#define HTTP_VER_10          1
+#define HTTP_VER_11          2
 
 static const slice_t HTTP_VER_TOSLICE[256] = {
     [HTTP_VER_10] = (slice_t) { .ptr = (byte_t*)"HTTP/1.0", .len = 8},

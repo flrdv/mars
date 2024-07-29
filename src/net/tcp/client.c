@@ -3,19 +3,18 @@
 //
 
 #include "client.h"
+#include "lib/arena.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-tcp_client_t* tcp_client_new(int fd, struct sockaddr_in remote) {
-    tcp_client_t* client = malloc(sizeof(tcp_client_t));
-    *client = (tcp_client_t) {
+tcp_client_t tcp_client_new(int fd, struct sockaddr_in remote) {
+    return (tcp_client_t) {
         .fd = fd,
         .remote = remote
     };
-
-    return client;
 }
 
 static int tcp_read(void* s, slice_t buff) {
@@ -61,7 +60,12 @@ static void tcp_preserve(void* s, slice_t data) {
     self->preserved = data;
 }
 
-static struct sockaddr_in tcp_remote(void* s) {
+static int tcp_set_nonblocking(void* s) {
+    tcp_client_t* self = s;
+    return fcntl(self->fd, F_SETFL, fcntl(self->fd, F_GETFL, 0) | O_NONBLOCK) == 0;
+}
+
+static sockaddr_t tcp_remote(void* s) {
     tcp_client_t* self = s;
     return self->remote;
 }
@@ -74,21 +78,14 @@ static int tcp_close(void* s) {
     return close(self->fd);
 }
 
-static void tcp_client_free(void* s) {
-    // convert void* to tcp_client_t* just in order to keep the way the code looks
-    // more consistent
-    tcp_client_t* self = s;
-    free(self);
-}
-
 net_client_t tcp_client_as_net(tcp_client_t* self) {
     return (net_client_t) {
-        .self = self,
+        .env = self,
         .read = tcp_read,
         .write = tcp_write,
         .preserve = tcp_preserve,
+        .set_nonblocking = tcp_set_nonblocking,
         .remote = tcp_remote,
         .close = tcp_close,
-        .free = tcp_client_free
     };
 }

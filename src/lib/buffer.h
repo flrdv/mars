@@ -5,15 +5,16 @@
 #ifndef MARS_BUFFER_H
 #define MARS_BUFFER_H
 
-#include <stdbool.h>
 #include "slice.h"
 
-typedef struct buffer {
+#include <stdint.h>
+
+typedef struct {
     byte_t* mem;
     size_t offset, len, cap, max_cap;
 } buffer_t;
 
-buffer_t buffer_new(uint32_t prealloc, uint32_t max_cap);
+buffer_t buffer_new(size_t prealloc, size_t max_cap);
 void     buffer_free(buffer_t* buff);
 bool     buffer_append(buffer_t* buff, const byte_t* data, size_t size);
 bool     buffer_append_char(buffer_t* buff, const char* data, size_t size);

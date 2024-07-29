@@ -1,6 +1,7 @@
 tests += [
     ['buffer', 'test_buffer.c'],
     ['request', 'test_request.c'],
+    ['ev pool', 'test_ev_pool.c'],
     ['key-value storage', 'test_keyval.c'],
     ['dummy client', 'test_dummy_client.c'],
     ['http/1 parser', 'test_parser.c'],
