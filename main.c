@@ -8,49 +8,43 @@
 #include "ev/ev.h"
 #include "net/client.h"
 
-typedef struct {
-    list_t read;
-} async_env_t;
-
-ev_result_t async_read(void* env, net_client_t* client, slice_t data) {
-    async_env_t* self = env;
+ev_result_t async_read(void* env, slice_t data) {
+    list_t* self = env;
 
     for (size_t i = 0; i < data.len; i++) {
         if (data.ptr[i] == 0) {
-            list_append(&self->read, data.ptr, i+1);
-            printf("async_read: message: %s\n", (char*)self->read.ptr);
-            list_pop(&self->read);
+            list_append(self, data.ptr, i+1);
+            printf("async_read: message: %s\n", (char*)self->ptr);
+            list_pop(self);
 
             return EV_RESULT(EV_WRITE, i+1);
         }
     }
 
-    list_append(&self->read, data.ptr, data.len);
+    list_append(self, data.ptr, data.len);
 
     return EV_RESULT(EV_READ, data.len);
 }
 
-ev_result_t async_write(void* env, net_client_t* client, slice_t buff) {
+ev_result_t async_write(void* env, slice_t buff) {
     printf("async_write\n");
-    async_env_t* self = env;
-    size_t datalen = self->read.len;
-    memcpy(buff.ptr, self->read.ptr, datalen);
-    list_clear(&self->read);
+    list_t* self = env;
+    size_t datalen = self->len;
+    memcpy(buff.ptr, self->ptr, datalen);
+    list_clear(self);
 
     return EV_RESULT(EV_READ, datalen);
 }
 
 void async_free(void* env) {
-    async_env_t* self = env;
-    list_free(&self->read);
+    list_t* self = env;
+    list_free(self);
     free(env);
 }
 
 ev_coroutine_t async_task_spawner(net_client_t client) {
-    async_env_t* env = malloc(sizeof(async_env_t)); //NOLINT
-    *env = (async_env_t) {
-        .read = list_new(sizeof(byte_t))
-    };
+    list_t* env = malloc(sizeof(list_t)); //NOLINT
+    *env = list_new(sizeof(byte_t));
 
     return (ev_coroutine_t) {
         .read = async_read,

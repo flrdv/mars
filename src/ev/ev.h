@@ -26,7 +26,7 @@ typedef struct {
     size_t processed;
 } ev_result_t;
 
-typedef ev_result_t (*ev_closure_t)(void* env, net_client_t* client, slice_t data);
+typedef ev_result_t (*ev_closure_t)(void* env, slice_t data);
 
 typedef struct {
     ev_closure_t read;
@@ -45,14 +45,17 @@ typedef struct {
 
 typedef ev_coroutine_t (*ev_task_spawner_t)(net_client_t client);
 
-typedef ARRAY(ev_task_t*) ev_disconnects_t;
+typedef struct {
+    size_t cap;
+    ev_task_t** ptr;
+} ev_disconnected_t;
 
 typedef struct {
     size_t resume_at;
     size_t rbufflen;
     size_t wbufflen;
     reporter_t reporter;
-    ev_disconnects_t disconnects;
+    ev_disconnected_t disconnected;
     list_t events;
     arena_t readarena;
     arena_t writearena;
@@ -60,7 +63,7 @@ typedef struct {
 
 typedef struct {
     bool queue_empty;
-    ev_disconnects_t disconnects;
+    ev_disconnected_t disconnects;
 } ev_updates_t;
 
 ev_t         ev_new(size_t max_disconnects, size_t rbufflen, size_t wbufflen, arena_t reads, arena_t writes);

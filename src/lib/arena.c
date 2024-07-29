@@ -100,6 +100,6 @@ void arena_free(arena_t* self) {
     for (size_t i = 0; i < self->arenas.len; i++)
         free(ptrs[i]);
 
-    list_free(&self->arenas);
     list_free(&self->ptrs);
+    list_free(&self->arenas);
 }

@@ -93,7 +93,7 @@ int ev_epoll_run(int sock, size_t readbuff, size_t writebuff, int max_events, ta
         ev_updates_t status = ev_invoke(&evloop, ev_events_len, ev_events);
         timeout = status.queue_empty ? -1 : 0;
 
-        for (size_t i = 0; i < status.disconnects.len; i++) {
+        for (size_t i = 0; i < status.disconnects.cap; i++) {
             ev_task_t* task = status.disconnects.ptr[i];
             task->coro.free(task->coro.env);
             net_close(&task->client);

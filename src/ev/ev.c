@@ -17,8 +17,8 @@ ev_t ev_new(
         .resume_at = 0,
         .rbufflen = rbufflen,
         .wbufflen = wbufflen,
-        .disconnects = (ev_disconnects_t) {
-            .len = max_disconnects,
+        .disconnected = (ev_disconnected_t) {
+            .cap = max_disconnects,
             .ptr = malloc(max_disconnects * sizeof(ev_task_t*))
         },
         // TODO: pass preallocated events buffer?
@@ -49,7 +49,7 @@ typedef struct {
     bool nomem;
     size_t inactives;
     size_t new_events_processed;
-    size_t disconnects;
+    size_t disconnected;
 } ev_dispatched_events_t;
 
 /// processes all the pooled events and populates (replaces inactive) with new ones.
@@ -76,14 +76,14 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
             arena_release(&self->readarena, task->preserved_read.ptr);   \
         if (task->preserved_write.len)                                   \
             arena_release(&self->writearena, task->preserved_write.ptr); \
-        self->disconnects.ptr[disconnects++] = task;                     \
-        if (disconnects >= self->disconnects.len) {                      \
+        self->disconnected.ptr[disconnects++] = task;                    \
+        if (disconnects >= self->disconnected.cap) {                     \
             self->resume_at = i;                                         \
             return (ev_dispatched_events_t) {                            \
                 .nomem = false,                                          \
                 .inactives = inactives,                                  \
                 .new_events_processed = evhead,                          \
-                .disconnects = disconnects                               \
+                .disconnected = disconnects                              \
             };                                                           \
         }                                                                \
     } while (0)
@@ -124,7 +124,7 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
         switch (task->state) {
         case EV_READ: {
             if (task->preserved_read.len) {
-                ev_result_t status = task->coro.read(task->coro.env, &task->client, task->preserved_read);
+                ev_result_t status = task->coro.read(task->coro.env, task->preserved_read);
                 if (status.next == EV_ERROR) {
                     // TODO: maybe, notify?
                     CLOSE_TASK;
@@ -134,10 +134,7 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
                 task->state = status.next;
 
                 if (status.processed < task->preserved_read.len) {
-                    task->preserved_read = slice_new(
-                        task->preserved_read.ptr + status.processed,
-                        task->preserved_read.len - status.processed
-                    );
+                    task->preserved_read = slice_offset(task->preserved_read, status.processed);
                 } else {
                     arena_release(&self->readarena, task->preserved_read.ptr);
                     task->preserved_read.len = 0;
@@ -155,7 +152,7 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
                     break;
                 }
 
-                ev_result_t status = task->coro.read(task->coro.env, &task->client, slice_new(readbuff, n));
+                ev_result_t status = task->coro.read(task->coro.env, slice_new(readbuff, n));
                 if (status.next == EV_ERROR) {
                     CLOSE_TASK;
                     break;
@@ -190,7 +187,7 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
                 break;
             }
 
-            ev_result_t status = task->coro.write(task->coro.env, &task->client, slice_new(writebuff, self->wbufflen));
+            ev_result_t status = task->coro.write(task->coro.env, slice_new(writebuff, self->wbufflen));
             if (status.next == EV_ERROR) {
                 CLOSE_TASK;
                 break;
@@ -220,13 +217,13 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
         ++i;
     }
 
-    bool freed = arena_release(&self->readarena, readbuff) || arena_release(&self->writearena, writebuff);
+    bool ok = arena_release(&self->readarena, readbuff) || arena_release(&self->writearena, writebuff);
 
     return (ev_dispatched_events_t) {
-        .nomem = !freed,
+        .nomem = !ok,
         .inactives = inactives,
         .new_events_processed = evhead,
-        .disconnects = disconnects
+        .disconnected = disconnects
     };
 }
 
@@ -259,9 +256,9 @@ ev_updates_t ev_invoke(ev_t* self, size_t evc, ev_task_t* evs[]) {
 
     return (ev_updates_t) {
         .queue_empty = self->events.len <= status.inactives,
-        .disconnects = (ev_disconnects_t) {
-            .len = status.disconnects,
-            .ptr = self->disconnects.ptr
+        .disconnects = (ev_disconnected_t) {
+            .cap = status.disconnected,
+            .ptr = self->disconnected.ptr
         }
     };
 }
