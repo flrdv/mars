@@ -56,6 +56,7 @@ int ev_epoll_run(int sock, size_t readbuff, size_t writebuff, int max_events, ta
             ev_task_t* task = event.data.ptr;
 
             if (task->state != EV_SERVER) {
+                task->state &= ~EV_INACTIVE;
                 ev_events[ev_events_len++] = task;
                 continue;
             }

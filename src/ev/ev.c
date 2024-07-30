@@ -53,40 +53,39 @@ typedef struct {
 } ev_dispatched_events_t;
 
 /// processes all the pooled events and populates (replaces inactive) with new ones.
-/// Returns a number of populated (and processed) new events. All the new events,
-/// whose indexes are more or equal to returned number, are guaranteed to be left
-/// intact.
 static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task_t* evs[]) {
-#define DEACTIVATE_TASK                                                  \
-    do {                                                                 \
-        if (evhead < evc) {                                              \
-            task->state &= ~EV_INACTIVE;                                 \
-            events[i] = evs[evhead++];                                   \
-            break;                                                       \
-        }                                                                \
-                                                                         \
-        ++inactives;                                                     \
-        task->state |= EV_INACTIVE;                                      \
-    } while (0)
+#define DEACTIVATE_TASK                                              \
+    if (evhead < evc) {                                              \
+        events[i--] = evs[evhead++];                                 \
+    } else {                                                         \
+        ++inactives;                                                 \
+        task->state |= EV_INACTIVE;                                  \
+    }
 
-#define CLOSE_TASK                                                       \
-    do {                                                                 \
-        DEACTIVATE_TASK;                                                 \
-        if (task->preserved_read.len)                                    \
-            arena_release(&self->readarena, task->preserved_read.ptr);   \
-        if (task->preserved_write.len)                                   \
-            arena_release(&self->writearena, task->preserved_write.ptr); \
-        self->disconnected.ptr[disconnects++] = task;                    \
-        if (disconnects >= self->disconnected.cap) {                     \
-            self->resume_at = i;                                         \
-            return (ev_dispatched_events_t) {                            \
-                .nomem = false,                                          \
-                .inactives = inactives,                                  \
-                .new_events_processed = evhead,                          \
-                .disconnected = disconnects                              \
-            };                                                           \
-        }                                                                \
-    } while (0)
+#define DEACTIVATE_TASK_BEFORE_DISCONNECT                            \
+    task->state |= EV_INACTIVE;                                      \
+    if (evhead < evc) {                                              \
+        events[i--] = evs[evhead++];                                 \
+    } else {                                                         \
+        ++inactives;                                                 \
+    }
+
+#define CLOSE_TASK                                                   \
+    if (task->preserved_read.len)                                    \
+        arena_release(&self->readarena, task->preserved_read.ptr);   \
+    if (task->preserved_write.len)                                   \
+        arena_release(&self->writearena, task->preserved_write.ptr); \
+    self->disconnected.ptr[disconnects++] = task;                    \
+    DEACTIVATE_TASK_BEFORE_DISCONNECT                                \
+    if (disconnects >= self->disconnected.cap) {                     \
+        self->resume_at = i+1;                                       \
+        return (ev_dispatched_events_t) {                            \
+            .nomem = false,                                          \
+            .inactives = inactives,                                  \
+            .new_events_processed = evhead,                          \
+            .disconnected = disconnects                              \
+        };                                                           \
+    }
 
     int evhead = 0, inactives = 0, disconnects = 0;
     ev_task_t** events = self->events.ptr;
@@ -102,7 +101,7 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
     size_t resume_at = self->resume_at;
     self->resume_at = 0;
 
-    for (size_t i = resume_at; i < self->events.len; ) {
+    for (size_t i = resume_at; i < self->events.len; i++) {
         ev_task_t* task = events[i];
         if (task == NULL) {
             report_bug(&self->reporter, "ev: encountered an invalid event. Skipping");
@@ -110,13 +109,10 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
         }
 
         if (task->state & EV_INACTIVE) {
-            if (evhead < evc) {
-                task->state &= ~EV_INACTIVE;
-                events[i] = evs[evhead++];
-            } else {
+            if (evhead < evc)
+                events[i--] = evs[evhead++];
+            else
                 ++inactives;
-                ++i;
-            }
 
             continue;
         }
@@ -127,7 +123,7 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
                 ev_result_t status = task->coro.read(task->coro.env, task->preserved_read);
                 if (status.next == EV_ERROR) {
                     // TODO: maybe, notify?
-                    CLOSE_TASK;
+                    CLOSE_TASK
                     break;
                 }
 
@@ -175,11 +171,11 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
             // TODO: more data in it, therefore reducing total write calls
             if (task->preserved_write.len) {
                 int written = net_write(&task->client, task->preserved_write);
-                if (written == NET_EAGAIN)
+                if (written == NET_EAGAIN) {
                     DEACTIVATE_TASK;
-                else if (written < 0)
+                } else if (written < 0) {
                     CLOSE_TASK;
-                else if (written == task->preserved_write.len) {
+                } else if (written == task->preserved_write.len) {
                     arena_release(&self->writearena, task->preserved_write.ptr);
                     task->preserved_write.len = 0;
                 }
@@ -196,11 +192,11 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
             task->state = status.next;
 
             int written = net_write(&task->client, slice_new(writebuff, status.processed));
-            if (written == NET_EAGAIN)
+            if (written == NET_EAGAIN) {
                 DEACTIVATE_TASK;
-            else if (written < 0)
+            } else if (written < 0) {
                 CLOSE_TASK;
-            else if (written < status.processed) {
+            } else if (written < status.processed) {
                 task->preserved_write = slice_new(writebuff+written, status.processed-written);
                 writebuff = arena_acquire(&self->writearena);
                 if (writebuff == NULL)
@@ -213,8 +209,6 @@ static ev_dispatched_events_t ev_dispatch_events(ev_t* self, size_t evc, ev_task
             report_bug(&self->reporter, "ev: encountered an unexpected task state ({int}). Skipping", task->state);
             break;
         }
-
-        ++i;
     }
 
     bool ok = arena_release(&self->readarena, readbuff) || arena_release(&self->writearena, writebuff);
