@@ -77,9 +77,6 @@ bool list_append(list_t* self, void* elems, size_t elemc) {
         if (!list_grow(self, self->len+elemc))
             return false;
 
-    // printf("list.c (append, %p): appending %lu elems (%lu bytes) to array of %lu bytes capacity (%lu bytes occupied, %d elemsize)\n",
-        // self, elemc, elemc*self->elemsize, self->cap * self->elemsize, self->len*self->elemsize, self->elemsize);
-
     memcpy(self->ptr + self->len*self->elemsize, elems, elemc*self->elemsize);
     self->len += elemc;
     return true;
