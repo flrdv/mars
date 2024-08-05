@@ -20,5 +20,6 @@ typedef struct {
 arena_t arena_new(size_t elemsize, size_t prealloc);
 void*   arena_acquire(arena_t* self);
 bool    arena_release(arena_t* self, void* ptr);
+void    arena_free(arena_t* self);
 
 #endif //MARS_SRC_LIB_ALLOC_H
