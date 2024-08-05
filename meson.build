@@ -8,7 +8,6 @@ tests = []
 #subdir('tests/dummy')
 subdir('src/ev')
 subdir('src/lib')
-subdir('src/net')
 subdir('src/net/tcp')
 subdir('src/net/http')
 subdir('src/net/http/encodings')

@@ -2,49 +2,53 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lib/list.h"
-#include "lib/slice.h"
-#include "ev/epoll.h"
 #include "ev/ev.h"
+#include "lib/slice.h"
 #include "net/client.h"
 
+typedef struct {
+    size_t len;
+    byte_t* ptr;
+} async_env_t;
+
 ev_result_t async_read(void* env, slice_t data) {
-    list_t* self = env;
+    async_env_t* self = env;
 
     for (size_t i = 0; i < data.len; i++) {
         if (data.ptr[i] == 0) {
-            list_append(self, data.ptr, i+1);
-            printf("async_read: message: %s\n", (char*)self->ptr);
-            list_pop(self);
+            memcpy(self->ptr+self->len, data.ptr, i);
+            self->len += i;
 
             return EV_RESULT(EV_WRITE, i+1);
         }
     }
 
-    list_append(self, data.ptr, data.len);
+    memcpy(self->ptr+self->len, data.ptr, data.len);
+    self->len += data.len;
 
     return EV_RESULT(EV_READ, data.len);
 }
 
 ev_result_t async_write(void* env, slice_t buff) {
-    printf("async_write\n");
-    list_t* self = env;
-    size_t datalen = self->len;
-    memcpy(buff.ptr, self->ptr, datalen);
-    list_clear(self);
+    async_env_t* self = env;
+    size_t len = self->len;
+    self->len = 0;
+    memcpy(buff.ptr, self->ptr, len);
 
-    return EV_RESULT(EV_READ, datalen);
+    return EV_RESULT(EV_READ, len);
 }
 
 void async_free(void* env) {
-    list_t* self = env;
-    list_free(self);
+    // buffer is anyway allocated in the same memory block
     free(env);
 }
 
-ev_coroutine_t async_task_spawner(net_client_t client) {
-    list_t* env = malloc(sizeof(list_t)); //NOLINT
-    *env = list_new(sizeof(byte_t));
+ev_coroutine_t async_task_spawner(void) {
+    void* env = malloc(sizeof(async_env_t)+1024); //NOLINT
+    *(async_env_t*)env = (async_env_t) {
+        .len = 0,
+        .ptr = env+sizeof(async_env_t)
+    };
 
     return (ev_coroutine_t) {
         .read = async_read,
@@ -80,6 +84,6 @@ int main(void) {
     }
 
     printf("running\n");
-    ev_epoll_run(sock, read_buff_size, write_buff_size, 1024, async_task_spawner);
+    ev_run(sock, NULL, read_buff_size, write_buff_size, 8, 8, async_task_spawner);
     return 0;
 }
