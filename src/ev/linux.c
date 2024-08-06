@@ -8,6 +8,7 @@
 #include "ev.h"
 #include "net/tcp/client.h"
 
+#include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -46,7 +47,7 @@ static int ev_accept(ev_t* self, int epfd, arena_t* tasks, ev_task_spawner_t spa
     };
 
     struct epoll_event event = {
-        .events = EPOLLIN | EPOLLOUT | EPOLLET,
+        .events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET,
         .data = { task },
     };
 
@@ -107,6 +108,7 @@ static ev_task_status_t ev_process(ev_t* self, ev_task_t* task) {
     if (ev_has_preserved(task->preserved_write)) {
         slice_t data = task->preserved_write;
         int n = task->conn.write(task->conn.env, data.ptr, data.len);
+        // printf("%p: preserved write: %d; ", task, n);
         if (n == NET_EAGAIN)
             return EV_TASK_DISABLE;
         if (n <= 0)
@@ -131,11 +133,16 @@ static ev_task_status_t ev_process(ev_t* self, ev_task_t* task) {
 
         byte_t* buff = arena_acquire(self->reads);
         int n = task->conn.read(task->conn.env, buff, self->rbufflen);
-        if (n == NET_EAGAIN)
+        if (n == NET_EAGAIN) {
+            printf("%p EAGAIN\n", task);
+            arena_release(self->reads, buff);
             return EV_TASK_DISABLE;
+        }
 
-        if (n <= 0)
+        if (n <= 0) {
+            arena_release(self->reads, buff);
             return EV_TASK_CLOSE;
+        }
 
         bool preserved = ev_coro_read(task, slice_new(buff, n));
         if (!preserved)
@@ -149,14 +156,13 @@ static ev_task_status_t ev_process(ev_t* self, ev_task_t* task) {
         task->state = status.next;
         int n = task->conn.write(task->conn.env, buff, status.processed);
         if (n == NET_EAGAIN) {
+            printf("write EAGAIN\n");
             task->preserved_write = slice_new(buff, status.processed);
-
             return EV_TASK_DISABLE;
         }
 
         if (n <= 0) {
             arena_release(self->writes, buff);
-
             return EV_TASK_CLOSE;
         }
 
@@ -173,12 +179,12 @@ static ev_task_status_t ev_process(ev_t* self, ev_task_t* task) {
     }
 }
 
-static size_t ev_process_events(ev_t* self, list_t* evcache, ev_task_t** replacements, size_t rcap) {
+static size_t ev_process_cached(ev_t* self, list_t* evcache, ev_task_t** replacements, size_t rcap) {
     ev_task_t** events = evcache->ptr;
     size_t rhead = 0;
     ssize_t last_disabled_task = -1;
 
-    for (size_t i = 0; i < evcache->len; i++) {
+    for (ssize_t i = 0; i < evcache->len; i++) {
         ev_task_t* task = events[i];
         if (task == NULL) {
             if (rhead >= rcap) {
@@ -194,6 +200,7 @@ static size_t ev_process_events(ev_t* self, list_t* evcache, ev_task_t** replace
         ev_task_status_t status = ev_process(self, task);
         switch (status) {
         case EV_TASK_CONTINUE:
+            // printf("intact\n");
             break;
         case EV_TASK_DISABLE:
             if (rhead < rcap) {
@@ -278,9 +285,17 @@ int ev_run(
             continue;
         }
 
+        printf("epoll: %d new events, %lu cached events\n", n, evcache.len);
+
+        // printf("fresh loop:\n");
+
         for (size_t i = 0; i < n; i++) {
-            ev_task_t* task = evs[i].data.ptr;
+            struct epoll_event event = evs[i];
+            ev_task_t* task = event.data.ptr;
+            uint32_t flags = event.events;
+            printf("%p: %d (in=%d out=%d rdhup=%d)\n", task, flags, (flags&EPOLLIN)!=0, (flags&EPOLLOUT)!=0, (flags&EPOLLRDHUP)!=0);
             if (task->state == EV_ACCEPT) {
+                // printf("accept\n");
                 if (ev_accept_all(&self, epfd, &tasks, spawn) != 0) { //NOLINT: one day it may become required
                     // TODO: report error
                 }
@@ -288,16 +303,27 @@ int ev_run(
                 continue;
             }
 
+            if (event.events&EPOLLRDHUP)
+                continue;
+
+            for (size_t j = 0; j < evcache.len; j++) {
+                if (task == *(ev_task_t**)list_access(&evcache, j))
+                    printf("%p: duplicate event\n", task);
+            }
+
             ev_task_status_t status = ev_process(&self, task);
             switch (status) {
             case EV_TASK_CONTINUE:
+                // printf("caching\n");
                 cached_tasks[cached_tasks_len++] = task;
                 break;
             case EV_TASK_DISABLE:
+                // printf("omitting\n");
                 // problem has disappeared by itself. Everything is just fine
                 break;
             case EV_TASK_CLOSE:
-                // ev_task_close(&self, &tasks, task);
+                // printf("closing in-place\n");
+                ev_task_close(&self, task);
                 break;
             default:
                 report_bug(reporter, "{str}: got unexpected task processing status: {int}.", __FILE__, status);
@@ -305,7 +331,9 @@ int ev_run(
             }
         }
 
-        size_t processed = ev_process_events(&self, &evcache, cached_tasks, cached_tasks_len);
+        // printf("cached loop:\n");
+
+        size_t processed = ev_process_cached(&self, &evcache, cached_tasks, cached_tasks_len);
         // append the rest of the unprocessed tasks back. Unfortunately, they must have until the next
         // round to be processed
         list_append(&evcache, &cached_tasks[processed], cached_tasks_len-processed);
