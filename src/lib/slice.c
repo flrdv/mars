@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "slice.h"
 
+#include "slice.h"
 #include "itoa.h"
 #include "memcmpfold.h"
 

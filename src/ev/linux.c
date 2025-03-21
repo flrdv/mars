@@ -16,6 +16,7 @@
 
 typedef struct {
     int sock;
+    int epfd;
     reporter_t* reporter;
     size_t rbufflen, wbufflen;
     arena_t* tasks;
@@ -93,6 +94,9 @@ static void ev_task_close(ev_t* self, ev_task_t* task) {
     if (ev_has_preserved(task->preserved_write))
         arena_release(self->writes, task->preserved_write.ptr);
 
+    // detaching connection from epoll is unfortunately necessary in order to function
+    // properly:(
+    epoll_ctl(self->epfd, EPOLL_CTL_DEL, task->conn.env.fd, NULL);
     task->coro.free(task->coro.env);
     task->conn.close(task->conn.env);
     arena_release(self->tasks, task);
@@ -253,6 +257,7 @@ int ev_run(
 
     ev_t self = (ev_t) {
         .sock = sock,
+        .epfd = epfd,
         .reporter = reporter,
         .rbufflen = rbufflen,
         .wbufflen = wbufflen,
